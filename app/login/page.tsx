@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
+import PublicOnlyGuard from "@/src/components/PublicOnlyGuard";
 import { isSupabaseConfigured, supabase } from "@/src/lib/supabaseClient";
 import { useAuthStore } from "@/src/stores/useAuthStore";
 import styles from "./login.module.css";
@@ -58,57 +59,59 @@ export default function LoginPage() {
   };
 
   return (
-    <main className={styles.page}>
-      <section className={styles.card} aria-labelledby="login-title">
-        <p className={styles.eyebrow}>Welcome back</p>
-        <h1 id="login-title" className={styles.title}>
-          로그인
-        </h1>
-        <p className={styles.description}>
-          가입한 아이디와 비밀번호로 일본어 단어장을 시작하세요.
-        </p>
+    <PublicOnlyGuard>
+      <main className={styles.page}>
+        <section className={styles.card} aria-labelledby="login-title">
+          <p className={styles.eyebrow}>Welcome back</p>
+          <h1 id="login-title" className={styles.title}>
+            로그인
+          </h1>
+          <p className={styles.description}>
+            가입한 아이디와 비밀번호로 일본어 단어장을 시작하세요.
+          </p>
 
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <label className={styles.label} htmlFor="login-id">
-            아이디
-            <input
-              id="login-id"
-              className={styles.input}
-              type="email"
-              value={loginId}
-              onChange={(event) => setLoginId(event.target.value)}
-              placeholder="example@email.com"
-              autoComplete="email"
-            />
-          </label>
+          <form className={styles.form} onSubmit={handleSubmit}>
+            <label className={styles.label} htmlFor="login-id">
+              아이디
+              <input
+                id="login-id"
+                className={styles.input}
+                type="email"
+                value={loginId}
+                onChange={(event) => setLoginId(event.target.value)}
+                placeholder="example@email.com"
+                autoComplete="email"
+              />
+            </label>
 
-          <label className={styles.label} htmlFor="login-password">
-            비밀번호
-            <input
-              id="login-password"
-              className={styles.input}
-              type="password"
-              value={loginPassword}
-              onChange={(event) => setLoginPassword(event.target.value)}
-              placeholder="비밀번호를 입력하세요"
-              autoComplete="current-password"
-            />
-          </label>
+            <label className={styles.label} htmlFor="login-password">
+              비밀번호
+              <input
+                id="login-password"
+                className={styles.input}
+                type="password"
+                value={loginPassword}
+                onChange={(event) => setLoginPassword(event.target.value)}
+                placeholder="비밀번호를 입력하세요"
+                autoComplete="current-password"
+              />
+            </label>
 
-          {errorMessage ? <p className={styles.error}>{errorMessage}</p> : null}
-          {successMessage ? (
-            <p className={styles.success}>{successMessage}</p>
-          ) : null}
+            {errorMessage ? <p className={styles.error}>{errorMessage}</p> : null}
+            {successMessage ? (
+              <p className={styles.success}>{successMessage}</p>
+            ) : null}
 
-          <button className={styles.button} type="submit" disabled={isLoading}>
-            {isLoading ? "로그인 중..." : "로그인"}
-          </button>
-        </form>
+            <button className={styles.button} type="submit" disabled={isLoading}>
+              {isLoading ? "로그인 중..." : "로그인"}
+            </button>
+          </form>
 
-        <p className={styles.helper}>
-          아직 계정이 없나요? <Link href="/signup">회원가입</Link>
-        </p>
-      </section>
-    </main>
+          <p className={styles.helper}>
+            아직 계정이 없나요? <Link href="/signup">회원가입</Link>
+          </p>
+        </section>
+      </main>
+    </PublicOnlyGuard>
   );
 }

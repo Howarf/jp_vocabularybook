@@ -2,16 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/src/lib/supabaseClient";
+import type { VocabularyBook, WordRow } from "@/src/types/vocabulary";
 import WordCard from "./WordCard";
 import styles from "./words.module.css";
 
-type WordRow = Record<string, unknown>;
 type FilterLabel = "전체" | "N5" | "N4" | "N3" | "N2";
-type Notebook = {
-  id: string;
-  name: string;
-};
 type SelectedWord = {
+  id: number;
   word: string;
   reading: string;
 };
@@ -66,10 +63,13 @@ export default function WordsClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [notebooks, setNotebooks] = useState<Notebook[]>([]);
+  const [vocabularyBooks, setVocabularyBooks] = useState<VocabularyBook[]>([]);
   const [selectedWord, setSelectedWord] = useState<SelectedWord | null>(null);
-  const [newNotebookName, setNewNotebookName] = useState("");
+  const [newVocabularyBookTitle, setNewVocabularyBookTitle] = useState("");
+  const [isVocabularyBookLoading, setIsVocabularyBookLoading] = useState(false);
+  const [isVocabularyBookSubmitting, setIsVocabularyBookSubmitting] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const isLoadingRef = useRef(false);
 
@@ -114,9 +114,62 @@ export default function WordsClient() {
     [],
   );
 
+  // 현재 로그인한 사용자의 단어장 목록을 Supabase에서 불러옵니다.
+  const loadVocabularyBooks = useCallback(async () => {
+    setIsVocabularyBookLoading(true);
+    setFeedbackMessage("");
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      setFeedbackMessage(`세션 확인에 실패했습니다: ${sessionError.message}`);
+      setIsVocabularyBookLoading(false);
+      return;
+    }
+
+    if (!session) {
+      setFeedbackMessage("로그인 후 단어장을 사용할 수 있습니다.");
+      setIsVocabularyBookLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("vocabulary_books")
+      .select("id,user_id,title,description,created_at,updated_at")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setFeedbackMessage(
+        `단어장 목록을 불러오지 못했습니다. Supabase에 마이그레이션이 적용되었는지 확인해 주세요: ${error.message}`,
+      );
+      setVocabularyBooks([]);
+      setIsVocabularyBookLoading(false);
+      return;
+    }
+
+    setVocabularyBooks((data ?? []) as VocabularyBook[]);
+    setIsVocabularyBookLoading(false);
+  }, []);
+
   useEffect(() => {
     void loadWords(0, selectedFilter, true);
   }, [loadWords, selectedFilter]);
+
+  useEffect(() => {
+    if (!toastMessage) {
+      return;
+    }
+
+    const toastTimer = window.setTimeout(() => {
+      setToastMessage("");
+    }, 2400);
+
+    return () => window.clearTimeout(toastTimer);
+  }, [toastMessage]);
 
   // 선택한 단어 필터를 변경하고 현재 목록 상태를 초기화합니다.
   const handleFilterChange = (filter: FilterLabel) => {
@@ -152,41 +205,119 @@ export default function WordsClient() {
   const openNotebookModal = (word: SelectedWord) => {
     setSelectedWord(word);
     setFeedbackMessage("");
-    setNewNotebookName("");
+    setNewVocabularyBookTitle("");
+    void loadVocabularyBooks();
   };
 
   // 단어장 선택 모달을 닫고 입력 중인 단어장 이름을 초기화합니다.
   const closeNotebookModal = () => {
     setSelectedWord(null);
-    setNewNotebookName("");
+    setNewVocabularyBookTitle("");
   };
 
-  // 입력한 이름으로 임시 단어장을 생성합니다.
-  const handleCreateNotebook = () => {
-    const trimmedName = newNotebookName.trim();
+  // 입력한 제목으로 사용자 단어장을 Supabase에 생성합니다.
+  const handleCreateVocabularyBook = async () => {
+    const trimmedTitle = newVocabularyBookTitle.trim();
 
-    if (!trimmedName) {
+    if (!trimmedTitle) {
       setFeedbackMessage("새 단어장 이름을 입력해 주세요.");
       return;
     }
 
-    setNotebooks((currentNotebooks) => [
-      ...currentNotebooks,
-      { id: crypto.randomUUID(), name: trimmedName },
+    setIsVocabularyBookSubmitting(true);
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      setFeedbackMessage(
+        sessionError
+          ? `세션 확인에 실패했습니다: ${sessionError.message}`
+          : "로그인 후 단어장을 만들 수 있습니다.",
+      );
+      setIsVocabularyBookSubmitting(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("vocabulary_books")
+      .insert({ title: trimmedTitle, user_id: session.user.id })
+      .select("id,user_id,title,description,created_at,updated_at")
+      .single();
+
+    if (error) {
+      setFeedbackMessage(
+        `단어장을 만들지 못했습니다. Supabase에 마이그레이션이 적용되었는지 확인해 주세요: ${error.message}`,
+      );
+      setIsVocabularyBookSubmitting(false);
+      return;
+    }
+
+    setVocabularyBooks((currentVocabularyBooks) => [
+      data as VocabularyBook,
+      ...currentVocabularyBooks,
     ]);
-    setFeedbackMessage(`임시 단어장 '${trimmedName}'을 만들었습니다.`);
-    setNewNotebookName("");
+    setFeedbackMessage(`'${trimmedTitle}' 단어장을 만들었습니다.`);
+    setNewVocabularyBookTitle("");
+    setIsVocabularyBookSubmitting(false);
   };
 
-  // 선택한 임시 단어장에 현재 단어를 추가했다는 피드백을 표시합니다.
-  const handleSelectNotebook = (notebookName: string) => {
+  // 선택한 단어장에 현재 단어와 원본 단어의 연결 데이터를 저장합니다.
+  const handleSelectVocabularyBook = async (vocabularyBook: VocabularyBook) => {
     if (!selectedWord) {
       return;
     }
 
-    setFeedbackMessage(
-      `'${selectedWord.word}' 단어를 '${notebookName}'에 추가했습니다. DB에는 저장하지 않았습니다.`,
-    );
+    setIsVocabularyBookSubmitting(true);
+    setFeedbackMessage("");
+
+    const { data: existingVocabularyBookWord, error: existingVocabularyBookWordError } =
+      await supabase
+        .from("vocabulary_book_words")
+        .select("id")
+        .eq("book_id", vocabularyBook.id)
+        .eq("word_id", selectedWord.id)
+        .maybeSingle();
+
+    if (existingVocabularyBookWordError) {
+      setFeedbackMessage(
+        `단어 추가 전 중복 여부를 확인하지 못했습니다: ${existingVocabularyBookWordError.message}`,
+      );
+      setIsVocabularyBookSubmitting(false);
+      return;
+    }
+
+    if (existingVocabularyBookWord) {
+      setFeedbackMessage("이미 추가된 단어입니다.");
+      setIsVocabularyBookSubmitting(false);
+      return;
+    }
+
+    const { error } = await supabase.from("vocabulary_book_words").insert({
+      book_id: vocabularyBook.id,
+      word_id: selectedWord.id,
+    });
+
+    if (error) {
+      if (error.code === "23505") {
+        setFeedbackMessage("이미 추가된 단어입니다.");
+        setIsVocabularyBookSubmitting(false);
+        return;
+      }
+
+      setFeedbackMessage(
+        `단어를 추가하지 못했습니다. table.sql의 vocabulary_book_words.book_id 및 word_id 외래 키와 일치하는지 확인해 주세요: ${error.message}`,
+      );
+      setIsVocabularyBookSubmitting(false);
+      return;
+    }
+
+    setSelectedWord(null);
+    setNewVocabularyBookTitle("");
+    setToastMessage("추가되었습니다.");
+    setIsVocabularyBookSubmitting(false);
   };
 
   return (
@@ -198,7 +329,7 @@ export default function WordsClient() {
         </h1>
         <p className={styles.description}>
           Supabase <code>words</code> 테이블에서 50개씩 단어를 불러옵니다.
-          카드를 왼쪽으로 밀거나 버튼을 눌러 임시 단어장에 추가해 보세요.
+          카드를 왼쪽으로 밀어 내 단어장에 추가해 보세요.
         </p>
       </section>
 
@@ -236,6 +367,7 @@ export default function WordsClient() {
           const koreanMeaningValue = pickValue(word, koreanMeaningKeys);
           const englishMeaningValue = pickValue(word, englishMeaningKeys);
           const tagValue = pickValue(word, tagKeys);
+          const wordId = word.id;
 
           return (
             <WordCard
@@ -244,7 +376,13 @@ export default function WordsClient() {
               key={String(word.id ?? `${wordValue}-${index}`)}
               koreanMeaning={koreanMeaningValue}
               onAddToNotebook={() =>
-                openNotebookModal({ word: wordValue, reading: readingValue })
+                  typeof wordId !== "number"
+                    ? setFeedbackMessage("이 단어에는 저장에 필요한 id가 없습니다.")
+                    : openNotebookModal({
+                      id: wordId,
+                      word: wordValue,
+                      reading: readingValue,
+                    })
               }
               reading={readingValue}
               tag={tagValue}
@@ -291,24 +429,31 @@ export default function WordsClient() {
               {selectedWord.reading !== "-" ? <span>{selectedWord.reading}</span> : null}
             </p>
 
-            {notebooks.length > 0 ? (
+            {isVocabularyBookLoading ? (
+              <p className={styles.emptyNotebookText}>내 단어장을 불러오는 중입니다...</p>
+            ) : null}
+
+            {!isVocabularyBookLoading && vocabularyBooks.length > 0 ? (
               <div className={styles.notebookList}>
-                {notebooks.map((notebook) => (
+                {vocabularyBooks.map((vocabularyBook) => (
                   <button
                     className={styles.notebookButton}
-                    key={notebook.id}
-                    onClick={() => handleSelectNotebook(notebook.name)}
+                    disabled={isVocabularyBookSubmitting}
+                    key={vocabularyBook.id}
+                    onClick={() => handleSelectVocabularyBook(vocabularyBook)}
                     type="button"
                   >
-                    {notebook.name}
+                    {vocabularyBook.title}
                   </button>
                 ))}
               </div>
-            ) : (
+            ) : null}
+
+            {!isVocabularyBookLoading && vocabularyBooks.length === 0 ? (
               <p className={styles.emptyNotebookText}>
-                만들어둔 단어장이 없습니다. 아래에서 임시 단어장을 만들어 보세요.
+                만들어둔 단어장이 없습니다. 아래에서 새 단어장을 만들어 보세요.
               </p>
-            )}
+            ) : null}
 
             <div className={styles.createNotebookBox}>
               <label className={styles.createNotebookLabel} htmlFor="new-notebook-name">
@@ -318,17 +463,18 @@ export default function WordsClient() {
                 <input
                   className={styles.createNotebookInput}
                   id="new-notebook-name"
-                  onChange={(event) => setNewNotebookName(event.target.value)}
+                  onChange={(event) => setNewVocabularyBookTitle(event.target.value)}
                   placeholder="예: 매일 복습 단어장"
                   type="text"
-                  value={newNotebookName}
+                  value={newVocabularyBookTitle}
                 />
                 <button
                   className={styles.createNotebookButton}
-                  onClick={handleCreateNotebook}
+                  disabled={isVocabularyBookSubmitting}
+                  onClick={handleCreateVocabularyBook}
                   type="button"
                 >
-                  새 단어장 만들기
+                  {isVocabularyBookSubmitting ? "처리 중..." : "새 단어장 만들기"}
                 </button>
               </div>
             </div>
@@ -337,6 +483,12 @@ export default function WordsClient() {
               <p className={styles.modalFeedback}>{feedbackMessage}</p>
             ) : null}
           </section>
+        </div>
+      ) : null}
+
+      {toastMessage ? (
+        <div className={styles.toast} role="status">
+          {toastMessage}
         </div>
       ) : null}
     </main>
