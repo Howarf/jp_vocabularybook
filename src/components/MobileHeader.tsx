@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/src/lib/supabaseClient";
 import styles from "./MobileHeader.module.css";
 
@@ -11,6 +11,28 @@ export default function MobileHeader() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return undefined;
+    }
+
+    // 헤더 바깥 포인터 입력을 감지해 열린 햄버거 메뉴를 닫습니다.
+    const handleDocumentPointerDown = (event: globalThis.PointerEvent) => {
+      if (headerRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
+      setIsMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handleDocumentPointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleDocumentPointerDown);
+    };
+  }, [isMenuOpen]);
 
   // 햄버거 메뉴 패널의 열림 상태를 반대로 변경합니다.
   const handleToggleMenu = () => {
@@ -31,7 +53,7 @@ export default function MobileHeader() {
   };
 
   return (
-    <header className={styles.header}>
+    <header className={styles.header} ref={headerRef}>
       <h1 className={styles.logo}>JLPT단어장</h1>
       <button
         className={styles.menuButton}
@@ -53,6 +75,12 @@ export default function MobileHeader() {
       >
         <Link className={styles.menuLink} href="/" onClick={handleCloseMenu}>
           메인
+        </Link>
+        <Link className={styles.menuLink} href="/hiragana" onClick={handleCloseMenu}>
+          히라가나
+        </Link>
+        <Link className={styles.menuLink} href="/katakana" onClick={handleCloseMenu}>
+          가타카나
         </Link>
         <Link className={styles.menuLink} href="/words" onClick={handleCloseMenu}>
           JLPT단어 보기

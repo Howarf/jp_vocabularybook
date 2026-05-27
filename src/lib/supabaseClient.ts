@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/src/types/database";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabasePublishableKey =
@@ -8,4 +9,4 @@ export const isSupabaseConfigured = Boolean(
   supabaseUrl && supabasePublishableKey,
 );
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey);
+export const supabase = createClient<Database>(supabaseUrl, supabasePublishableKey);

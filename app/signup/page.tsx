@@ -25,7 +25,6 @@ export default function SignupPage() {
     setNickname,
     setIsLoading,
     setErrorMessage,
-    setSuccessMessage,
     resetMessages,
     resetSignupForm,
   } = useAuthStore();

@@ -96,6 +96,42 @@
   transform: translateY(-1px);
 }
 
+.controls {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.searchLabel {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  color: #111827;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid #d1d5db;
+  border-radius: 1rem;
+  background: #ffffff;
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.75rem 0.9rem;
+}
+
+.searchInput::placeholder {
+  color: #9ca3af;
+}
+
+.searchInput:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-primary-soft);
+}
+
 .notice {
   display: grid;
   gap: 8px;
@@ -170,6 +206,7 @@
   display: grid;
   width: 32px;
   height: 32px;
+  flex: 0 0 32px;
   place-items: center;
   border-radius: 50%;
   background: var(--color-primary-soft);
@@ -195,10 +232,12 @@
 
 .actionRow {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: end;
   gap: 8px;
-  min-width: 0;
+  min-width: max-content;
+  white-space: nowrap;
 }
 
 .meaningToggle {
@@ -546,27 +585,44 @@
     flex: 0 0 auto;
   }
 
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
   .wordRow {
     grid-template-columns: 1fr;
     gap: 4px;
   }
 
   .metaRow {
-    grid-template-columns: 1fr;
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .tagText {
-    justify-self: start;
+    justify-self: end;
+    flex-shrink: 0;
   }
 
   .topRow {
-    grid-template-columns: 1fr;
-    align-items: start;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-width: 0;
   }
 
   .actionRow {
-    justify-content: start;
+    flex-shrink: 0;
+    justify-content: end;
+  }
+
+  .meaningToggle {
+    flex-shrink: 0;
+    min-width: max-content;
+    white-space: nowrap;
   }
 
   .addButton {

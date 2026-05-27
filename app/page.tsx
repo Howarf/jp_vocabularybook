@@ -12,9 +12,17 @@ export default function Home() {
           <MobileHeader />
 
           <div className={styles.content}>
-            <Link className={styles.primaryLink} href="/words">
-              JLPT단어 보러가기
-            </Link>
+            <div className={styles.buttonGroup}>
+              <Link className={styles.secondaryLink} href="/hiragana">
+                히라가나
+              </Link>
+              <Link className={styles.secondaryLink} href="/katakana">
+                가타카나
+              </Link>
+              <Link className={styles.primaryLink} href="/words">
+                JLPT단어 보러가기
+              </Link>
+            </div>
           </div>
         </section>
       </main>

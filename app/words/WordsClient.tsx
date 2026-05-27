@@ -1,12 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { supabase } from "@/src/lib/supabaseClient";
+import MobileHeader from "@/src/components/MobileHeader";
 import type { VocabularyBook, WordRow } from "@/src/types/vocabulary";
+import {
+  getJlptDatabaseTag,
+  jlptTagOptions,
+  pickWordDisplayValue,
+  sanitizeWordSearchTerm,
+  type JlptFilterLabel,
+  wordEnglishMeaningFields,
+  wordExpressionFields,
+  wordKoreanMeaningFields,
+  wordReadingFields,
+  wordTagFields,
+} from "@/src/utils/word";
 import WordCard from "./WordCard";
 import styles from "./words.module.css";
 
-type FilterLabel = "전체" | "N5" | "N4" | "N3" | "N2";
 type SelectedWord = {
   id: number;
   word: string;
@@ -14,51 +26,12 @@ type SelectedWord = {
 };
 
 const pageSize = 50;
-const tagOptions: { label: FilterLabel; dbValue?: string }[] = [
-  { label: "전체" },
-  { label: "N5", dbValue: "JLPT_N5" },
-  { label: "N4", dbValue: "JLPT_N4" },
-  { label: "N3", dbValue: "JLPT_N3" },
-  { label: "N2", dbValue: "JLPT_N2" },
-];
-
-const wordKeys = ["expression", "word", "term", "japanese"] as const;
-const readingKeys = ["reading", "kana", "pronunciation"] as const;
-const koreanMeaningKeys = [
-  "meaning",
-  "korean_meaning",
-  "meaning_ko",
-  "korean",
-] as const;
-const englishMeaningKeys = ["english_meaning", "meaning_en"] as const;
-const tagKeys = ["tag", "level", "jlpt_level"] as const;
-
-// 알 수 없는 값을 화면에 표시할 수 있는 문자열로 변환합니다.
-function formatValue(value: unknown) {
-  if (value === null || value === undefined || typeof value === "object") {
-    return "-";
-  }
-
-  return String(value);
-}
-
-// 단어 데이터 행에서 후보 키 중 첫 번째 유효한 값을 선택합니다.
-function pickValue(row: WordRow, keys: readonly string[]) {
-  const matchedKey = keys.find(
-    (key) => row[key] !== null && row[key] !== undefined,
-  );
-
-  return formatValue(matchedKey ? row[matchedKey] : undefined);
-}
-
-// 선택한 필터 라벨에 대응하는 데이터베이스 태그 값을 반환합니다.
-function getDbTag(label: FilterLabel) {
-  return tagOptions.find((option) => option.label === label)?.dbValue;
-}
 
 // Supabase 단어 데이터를 필터링하고 무한 스크롤로 보여주는 클라이언트 화면을 렌더링합니다.
 export default function WordsClient() {
-  const [selectedFilter, setSelectedFilter] = useState<FilterLabel>("전체");
+  const [selectedFilter, setSelectedFilter] = useState<JlptFilterLabel>("전체");
+  const [searchInputValue, setSearchInputValue] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [words, setWords] = useState<WordRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -72,28 +45,62 @@ export default function WordsClient() {
   const [toastMessage, setToastMessage] = useState("");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const isLoadingRef = useRef(false);
+  const activeWordsRequestIdRef = useRef(0);
 
-  // 지정한 위치와 필터에 맞는 단어 목록을 Supabase에서 불러옵니다.
+  // 지정한 조건과 위치에 맞는 단어 목록을 Supabase에서 불러옵니다.
   const loadWords = useCallback(
-    async (nextOffset: number, filter: FilterLabel, shouldReset = false) => {
-      if (isLoadingRef.current) {
+    async (
+      nextOffset: number,
+      filter: JlptFilterLabel,
+      searchTerm: string,
+      shouldReset = false,
+    ) => {
+      if (isLoadingRef.current && !shouldReset) {
         return;
       }
 
+      const wordsRequestId = activeWordsRequestIdRef.current + 1;
+      activeWordsRequestIdRef.current = wordsRequestId;
       isLoadingRef.current = true;
       setIsLoading(true);
       setErrorMessage("");
 
+      if (shouldReset) {
+        setWords([]);
+        setHasMore(true);
+      }
+
       const from = nextOffset;
       const to = nextOffset + pageSize - 1;
-      let query = supabase.from("words").select("*").range(from, to);
-      const dbTag = getDbTag(filter);
+      const sanitizedSearchTerm = sanitizeWordSearchTerm(searchTerm);
+      let query = supabase
+        .from("words")
+        .select("*")
+        .order("id", { ascending: true })
+        .range(from, to);
+      const dbTag = getJlptDatabaseTag(filter);
 
       if (dbTag) {
         query = query.eq("tag", dbTag);
       }
 
+      if (sanitizedSearchTerm) {
+        const searchPattern = `%${sanitizedSearchTerm}%`;
+        query = query.or(
+          [
+            `expression.ilike.${searchPattern}`,
+            `reading.ilike.${searchPattern}`,
+            `meaning_ko.ilike.${searchPattern}`,
+            `meaning_en.ilike.${searchPattern}`,
+          ].join(","),
+        );
+      }
+
       const { data, error } = await query;
+
+      if (activeWordsRequestIdRef.current !== wordsRequestId) {
+        return;
+      }
 
       if (error) {
         setErrorMessage(error.message);
@@ -102,7 +109,7 @@ export default function WordsClient() {
         return;
       }
 
-      const nextWords = (data ?? []) as WordRow[];
+      const nextWords: WordRow[] = data ?? [];
 
       setWords((currentWords) =>
         shouldReset ? nextWords : [...currentWords, ...nextWords],
@@ -151,13 +158,25 @@ export default function WordsClient() {
       return;
     }
 
-    setVocabularyBooks((data ?? []) as VocabularyBook[]);
+    setVocabularyBooks(data ?? []);
     setIsVocabularyBookLoading(false);
   }, []);
 
   useEffect(() => {
-    void loadWords(0, selectedFilter, true);
-  }, [loadWords, selectedFilter]);
+    const debounceTimer = window.setTimeout(() => {
+      setDebouncedSearchTerm(sanitizeWordSearchTerm(searchInputValue));
+    }, 350);
+
+    return () => window.clearTimeout(debounceTimer);
+  }, [searchInputValue]);
+
+  useEffect(() => {
+    const initialLoadTimer = window.setTimeout(() => {
+      void loadWords(0, selectedFilter, debouncedSearchTerm, true);
+    }, 0);
+
+    return () => window.clearTimeout(initialLoadTimer);
+  }, [debouncedSearchTerm, loadWords, selectedFilter]);
 
   useEffect(() => {
     if (!toastMessage) {
@@ -172,10 +191,15 @@ export default function WordsClient() {
   }, [toastMessage]);
 
   // 선택한 단어 필터를 변경하고 현재 목록 상태를 초기화합니다.
-  const handleFilterChange = (filter: FilterLabel) => {
+  const handleFilterChange = (filter: JlptFilterLabel) => {
     setSelectedFilter(filter);
     setWords([]);
     setHasMore(true);
+  };
+
+  // 입력한 검색어를 검색 상태에 반영합니다.
+  const handleSearchInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSearchInputValue(event.target.value);
   };
 
   useEffect(() => {
@@ -190,7 +214,11 @@ export default function WordsClient() {
         const [entry] = entries;
 
         if (entry?.isIntersecting && !isLoading) {
-          void loadWords(words.length, selectedFilter);
+          void loadWords(
+            words.length,
+            selectedFilter,
+            debouncedSearchTerm,
+          );
         }
       },
       { rootMargin: "240px" },
@@ -199,7 +227,7 @@ export default function WordsClient() {
     observer.observe(sentinel);
 
     return () => observer.disconnect();
-  }, [hasMore, isLoading, loadWords, selectedFilter, words.length]);
+  }, [debouncedSearchTerm, hasMore, isLoading, loadWords, selectedFilter, words.length]);
 
   // 선택한 단어를 단어장 선택 모달에 표시합니다.
   const openNotebookModal = (word: SelectedWord) => {
@@ -248,17 +276,11 @@ export default function WordsClient() {
       .single();
 
     if (error) {
-      setFeedbackMessage(
-        `단어장을 만들지 못했습니다. Supabase에 마이그레이션이 적용되었는지 확인해 주세요: ${error.message}`,
-      );
       setIsVocabularyBookSubmitting(false);
       return;
     }
 
-    setVocabularyBooks((currentVocabularyBooks) => [
-      data as VocabularyBook,
-      ...currentVocabularyBooks,
-    ]);
+    setVocabularyBooks((currentVocabularyBooks) => [data, ...currentVocabularyBooks]);
     setFeedbackMessage(`'${trimmedTitle}' 단어장을 만들었습니다.`);
     setNewVocabularyBookTitle("");
     setIsVocabularyBookSubmitting(false);
@@ -322,19 +344,21 @@ export default function WordsClient() {
 
   return (
     <main className={styles.page}>
+      <MobileHeader />
+
       <section className={styles.header} aria-labelledby="words-title">
-        <p className={styles.eyebrow}>Vocabulary preview</p>
+        <p className={styles.eyebrow}>JLPT lexicon</p>
         <h1 id="words-title" className={styles.title}>
-          단어 보기
+          JLPT 사전
         </h1>
         <p className={styles.description}>
-          Supabase <code>words</code> 테이블에서 50개씩 단어를 불러옵니다.
-          카드를 왼쪽으로 밀어 내 단어장에 추가해 보세요.
+          N5에서 N2까지의 어휘들을 살펴보고<br/>
+          단어를 왼쪽으로 밀어 단어장에 추가해 보세요.
         </p>
       </section>
 
       <nav className={styles.filters} aria-label="단어 태그 필터">
-        {tagOptions.map((option) => (
+        {jlptTagOptions.map((option) => (
           <button
             className={`${styles.filterButton} ${selectedFilter === option.label ? styles.activeFilter : ""}`}
             key={option.label}
@@ -346,6 +370,21 @@ export default function WordsClient() {
         ))}
       </nav>
 
+      <section className={styles.controls} aria-label="단어 검색">
+        <label className={styles.searchLabel} htmlFor="word-search-input">
+          <span>단어 검색</span>
+          <input
+            className={styles.searchInput}
+            id="word-search-input"
+            onChange={handleSearchInputChange}
+            placeholder="단어, 읽기, 뜻을 입력하세요"
+            type="search"
+            value={searchInputValue}
+          />
+        </label>
+
+      </section>
+
       {errorMessage ? (
         <section className={styles.notice} role="alert">
           <strong>단어를 불러오지 못했습니다.</strong>
@@ -355,18 +394,18 @@ export default function WordsClient() {
 
       {!errorMessage && !isLoading && words.length === 0 ? (
         <section className={styles.notice}>
-          <strong>표시할 단어가 없습니다.</strong>
-          <span>선택한 태그에 해당하는 데이터가 없습니다.</span>
+          <strong>검색 결과가 없습니다.</strong>
+          <span>검색어 또는 선택한 태그에 해당하는 단어가 없습니다.</span>
         </section>
       ) : null}
 
       <ul className={styles.list}>
         {words.map((word, index) => {
-          const wordValue = pickValue(word, wordKeys);
-          const readingValue = pickValue(word, readingKeys);
-          const koreanMeaningValue = pickValue(word, koreanMeaningKeys);
-          const englishMeaningValue = pickValue(word, englishMeaningKeys);
-          const tagValue = pickValue(word, tagKeys);
+          const wordValue = pickWordDisplayValue(word, wordExpressionFields);
+          const readingValue = pickWordDisplayValue(word, wordReadingFields);
+          const koreanMeaningValue = pickWordDisplayValue(word, wordKoreanMeaningFields);
+          const englishMeaningValue = pickWordDisplayValue(word, wordEnglishMeaningFields);
+          const tagValue = pickWordDisplayValue(word, wordTagFields);
           const wordId = word.id;
 
           return (
@@ -423,11 +462,35 @@ export default function WordsClient() {
                 ×
               </button>
             </div>
-
+            
             <p className={styles.selectedWordText}>
               <strong>{selectedWord.word}</strong>
               {selectedWord.reading !== "-" ? <span>{selectedWord.reading}</span> : null}
             </p>
+
+            <div className={styles.createNotebookBox}>
+              <label className={styles.createNotebookLabel} htmlFor="new-notebook-name">
+                새 단어장 만들기
+              </label>
+              <div className={styles.createNotebookRow}>
+                <input
+                  className={styles.createNotebookInput}
+                  id="new-notebook-name"
+                  onChange={(event) => setNewVocabularyBookTitle(event.target.value)}
+                  placeholder="예: 매일 복습 단어장"
+                  type="text"
+                  value={newVocabularyBookTitle}
+                />
+                <button
+                  className={styles.createNotebookButton}
+                  disabled={isVocabularyBookSubmitting}
+                  onClick={handleCreateVocabularyBook}
+                  type="button"
+                >
+                  {isVocabularyBookSubmitting ? "처리 중..." : "새 단어장 만들기"}
+                </button>
+              </div>
+            </div>
 
             {isVocabularyBookLoading ? (
               <p className={styles.emptyNotebookText}>내 단어장을 불러오는 중입니다...</p>
@@ -454,30 +517,6 @@ export default function WordsClient() {
                 만들어둔 단어장이 없습니다. 아래에서 새 단어장을 만들어 보세요.
               </p>
             ) : null}
-
-            <div className={styles.createNotebookBox}>
-              <label className={styles.createNotebookLabel} htmlFor="new-notebook-name">
-                새 단어장 만들기
-              </label>
-              <div className={styles.createNotebookRow}>
-                <input
-                  className={styles.createNotebookInput}
-                  id="new-notebook-name"
-                  onChange={(event) => setNewVocabularyBookTitle(event.target.value)}
-                  placeholder="예: 매일 복습 단어장"
-                  type="text"
-                  value={newVocabularyBookTitle}
-                />
-                <button
-                  className={styles.createNotebookButton}
-                  disabled={isVocabularyBookSubmitting}
-                  onClick={handleCreateVocabularyBook}
-                  type="button"
-                >
-                  {isVocabularyBookSubmitting ? "처리 중..." : "새 단어장 만들기"}
-                </button>
-              </div>
-            </div>
 
             {feedbackMessage ? (
               <p className={styles.modalFeedback}>{feedbackMessage}</p>

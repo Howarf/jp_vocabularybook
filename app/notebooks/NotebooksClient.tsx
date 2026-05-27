@@ -1,50 +1,46 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ChangeEvent,
+  type PointerEvent,
+} from "react";
 import { supabase } from "@/src/lib/supabaseClient";
 import type {
-  VocabularyBook,
   VocabularyBookWithCount,
+  VocabularyBookWithLearningRows,
   VocabularyBookWordWithWord,
-  WordRow,
 } from "@/src/types/vocabulary";
+import {
+  normalizeJoinedWord,
+  pickWordDisplayValue,
+  wordExpressionFields,
+  wordKoreanMeaningFields,
+  wordReadingFields,
+  wordTagFields,
+} from "@/src/utils/word";
 import styles from "./notebooks.module.css";
 
-const wordKeys = ["expression", "word", "term", "japanese"] as const;
-const readingKeys = ["reading", "kana", "pronunciation"] as const;
-const koreanMeaningKeys = [
-  "meaning",
-  "korean_meaning",
-  "meaning_ko",
-  "korean",
-] as const;
-const tagKeys = ["tag", "level", "jlpt_level"] as const;
+const swipeRevealMaximumWidth = 50;
+const swipeToggleThresholdWidth = 45;
 
-// 알 수 없는 값을 화면에 표시할 수 있는 문자열로 변환합니다.
-function formatValue(value: unknown) {
-  if (value === null || value === undefined || typeof value === "object") {
-    return "-";
+// 단어장 단어 수와 학습 완료 단어 수로 학습 진행률을 계산합니다.
+function calculateLearningProgressPercentage(wordCount: number, learnedWordCount: number) {
+  if (wordCount === 0) {
+    return 0;
   }
 
-  return String(value);
+  return Math.round((learnedWordCount / wordCount) * 100);
 }
 
-// 단어 데이터 행에서 후보 키 중 첫 번째 유효한 값을 선택합니다.
-function pickValue(row: WordRow, keys: readonly string[]) {
-  const matchedKey = keys.find(
-    (key) => row[key] !== null && row[key] !== undefined,
-  );
-
-  return formatValue(matchedKey ? row[matchedKey] : undefined);
-}
-
-// 조인 결과의 words 값을 단일 단어 행으로 정규화합니다.
-function normalizeJoinedWord(words: WordRow | WordRow[] | null) {
-  if (Array.isArray(words)) {
-    return words[0] ?? null;
-  }
-
-  return words;
+// 이벤트 대상이 카드 드래그보다 우선되어야 하는 조작 요소인지 확인합니다.
+function isInteractiveElement(eventTarget: EventTarget | null) {
+  return eventTarget instanceof HTMLElement && Boolean(eventTarget.closest("button, a, input, textarea, select"));
 }
 
 // 실제 Supabase 데이터로 내 단어장 목록과 선택한 단어장의 단어 목록을 렌더링합니다.
@@ -56,8 +52,15 @@ export default function NotebooksClient() {
   const [isWordsLoading, setIsWordsLoading] = useState(false);
   const [isRemovingWordId, setIsRemovingWordId] = useState<string | null>(null);
   const [updatingLearningStateWordId, setUpdatingLearningStateWordId] = useState<string | null>(null);
+  const [dragOffsetByWordId, setDragOffsetByWordId] = useState<Record<string, number>>({});
+  const [draggingWordId, setDraggingWordId] = useState<string | null>(null);
+  const [newVocabularyBookTitle, setNewVocabularyBookTitle] = useState("");
+  const [isCreatingVocabularyBook, setIsCreatingVocabularyBook] = useState(false);
+  const [isCreateVocabularyBookModalOpen, setIsCreateVocabularyBookModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const pointerStartXRef = useRef<number | null>(null);
+  const feedbackToastTimeoutRef = useRef<number | null>(null);
 
   const selectedVocabularyBook = useMemo(
     () =>
@@ -67,21 +70,15 @@ export default function NotebooksClient() {
     [selectedVocabularyBookId, vocabularyBooks],
   );
 
-  useEffect(() => {
-    let isMounted = true;
-
-    // 현재 로그인한 사용자의 단어장 목록과 단어 개수를 Supabase에서 조회합니다.
-    const fetchVocabularyBooks = async () => {
+  // 현재 로그인한 사용자의 단어장 목록과 학습 진행률을 Supabase에서 조회합니다.
+  const fetchVocabularyBooks = useCallback(
+    async (shouldSelectFirstVocabularyBook = true) => {
       setErrorMessage("");
 
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
-
-      if (!isMounted) {
-        return;
-      }
 
       if (sessionError || !session) {
         setErrorMessage(
@@ -95,13 +92,9 @@ export default function NotebooksClient() {
 
       const { data, error } = await supabase
         .from("vocabulary_books")
-        .select("id,user_id,title,description,created_at,updated_at,vocabulary_book_words(count)")
+        .select("id,user_id,title,description,created_at,updated_at,vocabulary_book_words(status)")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
-
-      if (!isMounted) {
-        return;
-      }
 
       if (error) {
         setErrorMessage(
@@ -113,10 +106,12 @@ export default function NotebooksClient() {
         return;
       }
 
-      const nextVocabularyBooks = (data ?? []).map((row) => {
-        const vocabularyBook = row as VocabularyBook & {
-          vocabulary_book_words?: { count: number }[];
-        };
+      const nextVocabularyBooks = (data ?? []).map((vocabularyBook: VocabularyBookWithLearningRows) => {
+        const vocabularyBookWords = vocabularyBook.vocabulary_book_words ?? [];
+        const wordCount = vocabularyBookWords.length;
+        const learnedWordCount = vocabularyBookWords.filter(
+          (vocabularyBookWord) => vocabularyBookWord.status === true,
+        ).length;
 
         return {
           id: vocabularyBook.id,
@@ -125,32 +120,65 @@ export default function NotebooksClient() {
           description: vocabularyBook.description,
           created_at: vocabularyBook.created_at,
           updated_at: vocabularyBook.updated_at,
-          wordCount: vocabularyBook.vocabulary_book_words?.[0]?.count ?? 0,
+          wordCount,
+          learnedWordCount,
+          learningProgressPercentage: calculateLearningProgressPercentage(
+            wordCount,
+            learnedWordCount,
+          ),
         };
       });
 
       setVocabularyBooks(nextVocabularyBooks);
-      setSelectedVocabularyBookId((currentSelectedVocabularyBookId) => {
-        if (
-          currentSelectedVocabularyBookId &&
-          nextVocabularyBooks.some(
-            (vocabularyBook) => vocabularyBook.id === currentSelectedVocabularyBookId,
-          )
-        ) {
-          return currentSelectedVocabularyBookId;
-        }
+      if (shouldSelectFirstVocabularyBook) {
+        setSelectedVocabularyBookId((currentSelectedVocabularyBookId) => {
+          if (
+            currentSelectedVocabularyBookId &&
+            nextVocabularyBooks.some(
+              (vocabularyBook) => vocabularyBook.id === currentSelectedVocabularyBookId,
+            )
+          ) {
+            return currentSelectedVocabularyBookId;
+          }
 
-        return nextVocabularyBooks[0]?.id ?? null;
-      });
+          return nextVocabularyBooks[0]?.id ?? null;
+        });
+      }
       setIsVocabularyBooksLoading(false);
-      };
+    },
+    [],
+  );
 
-    void fetchVocabularyBooks();
+  useEffect(() => {
+    const vocabularyBooksTimer = window.setTimeout(() => {
+      void fetchVocabularyBooks();
+    }, 0);
+
+    return () => window.clearTimeout(vocabularyBooksTimer);
+  }, [fetchVocabularyBooks]);
+
+  useEffect(() => {
+    if (feedbackToastTimeoutRef.current) {
+      window.clearTimeout(feedbackToastTimeoutRef.current);
+      feedbackToastTimeoutRef.current = null;
+    }
+
+    if (!feedbackMessage) {
+      return undefined;
+    }
+
+    feedbackToastTimeoutRef.current = window.setTimeout(() => {
+      setFeedbackMessage("");
+      feedbackToastTimeoutRef.current = null;
+    }, 5000);
 
     return () => {
-      isMounted = false;
+      if (feedbackToastTimeoutRef.current) {
+        window.clearTimeout(feedbackToastTimeoutRef.current);
+        feedbackToastTimeoutRef.current = null;
+      }
     };
-  }, []);
+  }, [feedbackMessage]);
 
   useEffect(() => {
     let isMounted = true;
@@ -203,6 +231,75 @@ export default function NotebooksClient() {
     setFeedbackMessage("");
   };
 
+  // 새 단어장 생성 모달을 열고 이전 입력값을 초기화합니다.
+  const handleOpenCreateVocabularyBookModal = () => {
+    setNewVocabularyBookTitle("");
+    setFeedbackMessage("");
+    setIsCreateVocabularyBookModalOpen(true);
+  };
+
+  // 새 단어장 생성 모달을 닫고 입력값을 초기화합니다.
+  const handleCloseCreateVocabularyBookModal = () => {
+    if (isCreatingVocabularyBook) {
+      return;
+    }
+
+    setNewVocabularyBookTitle("");
+    setIsCreateVocabularyBookModalOpen(false);
+  };
+
+  // 입력한 제목으로 새 단어장을 만들고 목록을 다시 조회합니다.
+  const handleCreateVocabularyBook = async () => {
+    const trimmedTitle = newVocabularyBookTitle.trim();
+
+    if (!trimmedTitle) {
+      setFeedbackMessage("새 단어장 이름을 입력해 주세요.");
+      return;
+    }
+
+    setIsCreatingVocabularyBook(true);
+    setFeedbackMessage("");
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      setFeedbackMessage(
+        sessionError
+          ? `세션 확인에 실패했습니다: ${sessionError.message}`
+          : "로그인 후 단어장을 만들 수 있습니다.",
+      );
+      setIsCreatingVocabularyBook(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("vocabulary_books")
+      .insert({ title: trimmedTitle, user_id: session.user.id })
+      .select("id")
+      .single();
+
+    if (error) {
+      setFeedbackMessage(`단어장을 만들지 못했습니다: ${error.message}`);
+      setIsCreatingVocabularyBook(false);
+      return;
+    }
+
+    setNewVocabularyBookTitle("");
+    setSelectedVocabularyBookId(data.id as string);
+    await fetchVocabularyBooks(false);
+    setIsCreateVocabularyBookModalOpen(false);
+    setFeedbackMessage(`'${trimmedTitle}' 단어장을 만들었습니다.`);
+    setIsCreatingVocabularyBook(false);
+  };
+
+  // 새 단어장 제목 입력값을 상태에 반영합니다.
+  const handleNewVocabularyBookTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setNewVocabularyBookTitle(event.target.value);
+  };
+
   // 선택한 단어장에서 특정 단어 연결 데이터를 삭제합니다.
   const handleRemoveWord = async (vocabularyBookWordId: string) => {
     setIsRemovingWordId(vocabularyBookWordId);
@@ -219,6 +316,10 @@ export default function NotebooksClient() {
       return;
     }
 
+    const removedVocabularyBookWord = vocabularyBookWords.find(
+      (vocabularyBookWord) => vocabularyBookWord.id === vocabularyBookWordId,
+    );
+
     setVocabularyBookWords((currentVocabularyBookWords) =>
       currentVocabularyBookWords.filter(
         (vocabularyBookWord) => vocabularyBookWord.id !== vocabularyBookWordId,
@@ -227,7 +328,19 @@ export default function NotebooksClient() {
     setVocabularyBooks((currentVocabularyBooks) =>
       currentVocabularyBooks.map((vocabularyBook) =>
         vocabularyBook.id === selectedVocabularyBookId
-          ? { ...vocabularyBook, wordCount: Math.max(0, vocabularyBook.wordCount - 1) }
+          ? {
+              ...vocabularyBook,
+              wordCount: Math.max(0, vocabularyBook.wordCount - 1),
+              learnedWordCount: removedVocabularyBookWord?.status
+                ? Math.max(0, vocabularyBook.learnedWordCount - 1)
+                : vocabularyBook.learnedWordCount,
+              learningProgressPercentage: calculateLearningProgressPercentage(
+                Math.max(0, vocabularyBook.wordCount - 1),
+                removedVocabularyBookWord?.status
+                  ? Math.max(0, vocabularyBook.learnedWordCount - 1)
+                  : vocabularyBook.learnedWordCount,
+              ),
+            }
           : vocabularyBook,
       ),
     );
@@ -261,48 +374,100 @@ export default function NotebooksClient() {
           : vocabularyBookWord,
       ),
     );
+    setVocabularyBooks((currentVocabularyBooks) =>
+      currentVocabularyBooks.map((vocabularyBook) => {
+        if (vocabularyBook.id !== selectedVocabularyBookId) {
+          return vocabularyBook;
+        }
+
+        const currentVocabularyBookWord = vocabularyBookWords.find(
+          (vocabularyBookWord) => vocabularyBookWord.id === vocabularyBookWordId,
+        );
+        const wasMemorized = Boolean(currentVocabularyBookWord?.status);
+        const learnedWordCount = wasMemorized === nextStatus
+          ? vocabularyBook.learnedWordCount
+          : vocabularyBook.learnedWordCount + (nextStatus ? 1 : -1);
+
+        return {
+          ...vocabularyBook,
+          learnedWordCount,
+          learningProgressPercentage: calculateLearningProgressPercentage(
+            vocabularyBook.wordCount,
+            learnedWordCount,
+          ),
+        };
+      }),
+    );
     setFeedbackMessage(nextStatus ? "외움 상태로 저장했습니다." : "학습 중 상태로 저장했습니다.");
     setUpdatingLearningStateWordId(null);
   };
 
-  // 선택한 단어의 정답 또는 오답 횟수를 1 증가시켜 저장합니다.
-  const handleIncreaseAnswerCount = async (
+  // 선택한 단어의 외움 여부를 현재 상태의 반대로 전환합니다.
+  const handleToggleLearningStatus = (vocabularyBookWord: VocabularyBookWordWithWord) => {
+    if (updatingLearningStateWordId || isRemovingWordId === vocabularyBookWord.id) {
+      return;
+    }
+
+    void handleUpdateLearningStatus(vocabularyBookWord.id, !Boolean(vocabularyBookWord.status));
+  };
+
+  // 저장 단어 카드의 포인터 시작 위치를 저장하고 슬라이드 상태를 활성화합니다.
+  const handleWordCardPointerDown = (
     vocabularyBookWordId: string,
-    countType: "correct_count" | "wrong_count",
+    event: PointerEvent<HTMLDivElement>,
   ) => {
-    const currentVocabularyBookWord = vocabularyBookWords.find(
-      (vocabularyBookWord) => vocabularyBookWord.id === vocabularyBookWordId,
-    );
-
-    if (!currentVocabularyBookWord) {
+    if (isInteractiveElement(event.target) || updatingLearningStateWordId || isRemovingWordId === vocabularyBookWordId) {
       return;
     }
 
-    const nextCount = (currentVocabularyBookWord[countType] ?? 0) + 1;
+    pointerStartXRef.current = event.clientX;
+    setDraggingWordId(vocabularyBookWordId);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
 
-    setUpdatingLearningStateWordId(vocabularyBookWordId);
-    setFeedbackMessage("");
-
-    const { error } = await supabase
-      .from("vocabulary_book_words")
-      .update({ [countType]: nextCount })
-      .eq("id", vocabularyBookWordId);
-
-    if (error) {
-      setFeedbackMessage(`풀이 횟수를 저장하지 못했습니다: ${error.message}`);
-      setUpdatingLearningStateWordId(null);
+  // 저장 단어 카드의 왼쪽 슬라이드 거리를 화면 상태에 반영합니다.
+  const handleWordCardPointerMove = (
+    vocabularyBookWordId: string,
+    event: PointerEvent<HTMLDivElement>,
+  ) => {
+    if (pointerStartXRef.current === null || draggingWordId !== vocabularyBookWordId) {
       return;
     }
 
-    setVocabularyBookWords((currentVocabularyBookWords) =>
-      currentVocabularyBookWords.map((vocabularyBookWord) =>
-        vocabularyBookWord.id === vocabularyBookWordId
-          ? { ...vocabularyBookWord, [countType]: nextCount }
-          : vocabularyBookWord,
-      ),
-    );
-    setFeedbackMessage(countType === "correct_count" ? "정답 횟수를 저장했습니다." : "오답 횟수를 저장했습니다.");
-    setUpdatingLearningStateWordId(null);
+    const dragDifference = event.clientX - pointerStartXRef.current;
+    const nextDragOffset = Math.min(0, Math.max(dragDifference, -swipeRevealMaximumWidth));
+
+    setDragOffsetByWordId((currentDragOffsetByWordId) => ({
+      ...currentDragOffsetByWordId,
+      [vocabularyBookWordId]: nextDragOffset,
+    }));
+  };
+
+  // 저장 단어 카드의 슬라이드 종료 시 임계값에 따라 학습 상태를 토글합니다.
+  const handleWordCardPointerEnd = (
+    vocabularyBookWord: VocabularyBookWordWithWord,
+    event: PointerEvent<HTMLDivElement>,
+  ) => {
+    if (pointerStartXRef.current === null || draggingWordId !== vocabularyBookWord.id) {
+      return;
+    }
+
+    const currentDragOffset = dragOffsetByWordId[vocabularyBookWord.id] ?? 0;
+
+    if (currentDragOffset <= -swipeToggleThresholdWidth) {
+      handleToggleLearningStatus(vocabularyBookWord);
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    pointerStartXRef.current = null;
+    setDraggingWordId(null);
+    setDragOffsetByWordId((currentDragOffsetByWordId) => ({
+      ...currentDragOffsetByWordId,
+      [vocabularyBookWord.id]: 0,
+    }));
   };
 
   return (
@@ -312,7 +477,7 @@ export default function NotebooksClient() {
         내 단어장
       </h1>
       <p className={styles.description}>
-        Supabase에 저장된 내 단어장을 선택하고 담아둔 단어를 확인합니다.
+        단어들을 학습하고 옆으로 밀어 단어장을 clear하세요.
       </p>
 
       {errorMessage ? (
@@ -322,27 +487,27 @@ export default function NotebooksClient() {
         </section>
       ) : null}
 
-      {feedbackMessage ? (
-        <section className={styles.feedback} role="status">
-          {feedbackMessage}
-        </section>
-      ) : null}
-
       {isVocabularyBooksLoading ? (
         <div className={styles.emptyState}>내 단어장을 불러오는 중입니다...</div>
       ) : null}
 
-      {!isVocabularyBooksLoading && vocabularyBooks.length === 0 ? (
-        <div className={styles.emptyState}>
-          아직 만든 단어장이 없습니다. 단어 보기 화면에서 단어장을 만들고 단어를 추가해 주세요.
-        </div>
-      ) : null}
-
-      {vocabularyBooks.length > 0 ? (
+      {!isVocabularyBooksLoading ? (
         <div className={styles.contentGrid}>
           <section className={styles.panel} aria-label="내 단어장 목록">
-            <h2 className={styles.sectionTitle}>단어장 목록</h2>
+            <div className={styles.listHeader}>
+              <h2 className={styles.sectionTitle}>단어장 목록</h2>
+              <button
+                className={styles.createInlineButton}
+                onClick={handleOpenCreateVocabularyBookModal}
+                type="button"
+              >
+                새 단어장 만들기
+              </button>
+            </div>
             <ul className={styles.list}>
+              {vocabularyBooks.length === 0 ? (
+                <li className={styles.emptyListItem}>아직 만든 단어장이 없습니다.</li>
+              ) : null}
               {vocabularyBooks.map((vocabularyBook) => (
                 <li className={styles.card} key={vocabularyBook.id}>
                   <button
@@ -350,9 +515,13 @@ export default function NotebooksClient() {
                     onClick={() => handleSelectVocabularyBook(vocabularyBook.id)}
                     type="button"
                   >
-                    <strong>{vocabularyBook.title}</strong>
+                    <div className={styles.cardTitleRow}>
+                      <strong>{vocabularyBook.title}</strong>
+                      <small>
+                        {vocabularyBook.learnedWordCount} / {vocabularyBook.wordCount}개 학습 · {vocabularyBook.learningProgressPercentage}%
+                      </small>
+                    </div>
                     <span>{vocabularyBook.description ?? "설명 없는 단어장입니다."}</span>
-                    <small>{vocabularyBook.wordCount}개 단어</small>
                   </button>
                 </li>
               ))}
@@ -384,24 +553,60 @@ export default function NotebooksClient() {
               <ul className={styles.wordList}>
                 {vocabularyBookWords.map((vocabularyBookWord) => {
                   const word = normalizeJoinedWord(vocabularyBookWord.words);
-                  const wordText = word ? pickValue(word, wordKeys) : "삭제되었거나 찾을 수 없는 단어";
-                  const readingText = word ? pickValue(word, readingKeys) : "-";
-                  const meaningText = word ? pickValue(word, koreanMeaningKeys) : "원본 words 데이터를 확인해 주세요.";
-                  const tagText = word ? pickValue(word, tagKeys) : "-";
+                  const wordText = word ? pickWordDisplayValue(word, wordExpressionFields) : "삭제되었거나 찾을 수 없는 단어";
+                  const readingText = word ? pickWordDisplayValue(word, wordReadingFields) : "-";
+                  const meaningText = word ? pickWordDisplayValue(word, wordKoreanMeaningFields) : "원본 words 데이터를 확인해 주세요.";
+                  const tagText = word ? pickWordDisplayValue(word, wordTagFields) : "-";
                   const isMemorized = Boolean(vocabularyBookWord.status);
                   const correctCount = vocabularyBookWord.correct_count ?? 0;
                   const wrongCount = vocabularyBookWord.wrong_count ?? 0;
                   const isLearningStateUpdating = updatingLearningStateWordId === vocabularyBookWord.id;
+                  const wordCardDragOffset = dragOffsetByWordId[vocabularyBookWord.id] ?? 0;
+                  const wordCardRevealWidth = Math.abs(wordCardDragOffset);
+                  const nextLearningStatusText = isMemorized ? "학습 중으로 변경" : "외움으로 변경";
+                  const swipeWordCardStyle = {
+                    "--slide-reveal": `${wordCardRevealWidth}px`,
+                  } as CSSProperties;
 
                   return (
                     <li className={styles.wordCard} key={vocabularyBookWord.id}>
-                      <div className={styles.wordInfo}>
-                        <div className={styles.wordTitleRow}>
-                          <strong>{wordText}</strong>
-                          {readingText !== "-" ? <span>{readingText}</span> : null}
+                      <button
+                        aria-label={`${wordText} 상태를 ${nextLearningStatusText}`}
+                        className={styles.slideActionButton}
+                        disabled={isLearningStateUpdating || isRemovingWordId === vocabularyBookWord.id}
+                        onClick={() => handleToggleLearningStatus(vocabularyBookWord)}
+                        type="button"
+                      >
+                        {isLearningStateUpdating ? "변경 중" : nextLearningStatusText}
+                      </button>
+                      <div
+                        className={styles.swipeWordCard}
+                        data-dragging={draggingWordId === vocabularyBookWord.id}
+                        onPointerCancel={(event) => handleWordCardPointerEnd(vocabularyBookWord, event)}
+                        onPointerDown={(event) => handleWordCardPointerDown(vocabularyBookWord.id, event)}
+                        onPointerLeave={(event) => handleWordCardPointerEnd(vocabularyBookWord, event)}
+                        onPointerMove={(event) => handleWordCardPointerMove(vocabularyBookWord.id, event)}
+                        onPointerUp={(event) => handleWordCardPointerEnd(vocabularyBookWord, event)}
+                        style={swipeWordCardStyle}
+                      >
+                        <div className={styles.wordTopRow}>
+                          <div className={styles.wordTitleRow}>
+                            <strong>{wordText}</strong>
+                            {readingText !== "-" ? <span>{readingText}</span> : null}
+                          </div>
+                          <button
+                            className={styles.removeButton}
+                            disabled={isRemovingWordId === vocabularyBookWord.id || isLearningStateUpdating}
+                            onClick={() => handleRemoveWord(vocabularyBookWord.id)}
+                            type="button"
+                          >
+                            {isRemovingWordId === vocabularyBookWord.id ? "제거 중" : "제거"}
+                          </button>
                         </div>
-                        <p>{meaningText}</p>
-                        {tagText !== "-" ? <small>{tagText}</small> : null}
+                        <div className={styles.wordMeaningRow}>
+                          <p>{meaningText}</p>
+                          {tagText !== "-" ? <small>{tagText}</small> : null}
+                        </div>
                         <div className={styles.learningStatePanel}>
                           <div className={styles.learningStateHeader}>
                             <span className={`${styles.statusBadge} ${isMemorized ? styles.memorizedBadge : styles.learningBadge}`}>
@@ -411,50 +616,8 @@ export default function NotebooksClient() {
                               정답 {correctCount}회 · 오답 {wrongCount}회
                             </span>
                           </div>
-                          <div className={styles.learningActionGrid}>
-                            <button
-                              className={styles.learningActionButton}
-                              disabled={isLearningStateUpdating || !isMemorized}
-                              onClick={() => handleUpdateLearningStatus(vocabularyBookWord.id, false)}
-                              type="button"
-                            >
-                              학습 중
-                            </button>
-                            <button
-                              className={styles.learningActionButton}
-                              disabled={isLearningStateUpdating || isMemorized}
-                              onClick={() => handleUpdateLearningStatus(vocabularyBookWord.id, true)}
-                              type="button"
-                            >
-                              외움
-                            </button>
-                            <button
-                              className={styles.countActionButton}
-                              disabled={isLearningStateUpdating}
-                              onClick={() => handleIncreaseAnswerCount(vocabularyBookWord.id, "correct_count")}
-                              type="button"
-                            >
-                              정답 +1
-                            </button>
-                            <button
-                              className={styles.countActionButton}
-                              disabled={isLearningStateUpdating}
-                              onClick={() => handleIncreaseAnswerCount(vocabularyBookWord.id, "wrong_count")}
-                              type="button"
-                            >
-                              오답 +1
-                            </button>
-                          </div>
                         </div>
                       </div>
-                      <button
-                        className={styles.removeButton}
-                        disabled={isRemovingWordId === vocabularyBookWord.id || isLearningStateUpdating}
-                        onClick={() => handleRemoveWord(vocabularyBookWord.id)}
-                        type="button"
-                      >
-                        {isRemovingWordId === vocabularyBookWord.id ? "제거 중" : "제거"}
-                      </button>
                     </li>
                   );
                 })}
@@ -462,6 +625,72 @@ export default function NotebooksClient() {
             ) : null}
           </section>
         </div>
+      ) : null}
+
+      {isCreateVocabularyBookModalOpen ? (
+        <div className={styles.modalBackdrop} role="presentation">
+          <section
+            aria-labelledby="create-vocabulary-book-modal-title"
+            aria-modal="true"
+            className={styles.modalCard}
+            role="dialog"
+          >
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.modalEyebrow}>Create vocabulary book</p>
+                <h2 id="create-vocabulary-book-modal-title" className={styles.modalTitle}>
+                  새 단어장 만들기
+                </h2>
+              </div>
+              <button
+                aria-label="새 단어장 만들기 팝업 닫기"
+                className={styles.modalCloseButton}
+                disabled={isCreatingVocabularyBook}
+                onClick={handleCloseCreateVocabularyBookModal}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.modalForm}>
+              <label className={styles.createLabel} htmlFor="new-vocabulary-book-title">
+                단어장 이름
+              </label>
+              <input
+                className={styles.createInput}
+                id="new-vocabulary-book-title"
+                onChange={handleNewVocabularyBookTitleChange}
+                placeholder="예: 매일 복습 단어장"
+                type="text"
+                value={newVocabularyBookTitle}
+              />
+              <div className={styles.modalActionRow}>
+                <button
+                  className={styles.cancelButton}
+                  disabled={isCreatingVocabularyBook}
+                  onClick={handleCloseCreateVocabularyBookModal}
+                  type="button"
+                >
+                  취소
+                </button>
+                <button
+                  className={styles.createButton}
+                  disabled={isCreatingVocabularyBook}
+                  onClick={handleCreateVocabularyBook}
+                  type="button"
+                >
+                  {isCreatingVocabularyBook ? "생성 중" : "생성"}
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {feedbackMessage ? (
+        <section className={styles.feedbackToast} role="status">
+          {feedbackMessage}
+        </section>
       ) : null}
     </section>
   );

@@ -1,0 +1,110 @@
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgb(79 70 229 / 14%), transparent 36%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  padding: 0 1rem;
+}
+
+.shell {
+  width: min(100%, 32rem);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: max(1.125rem, env(safe-area-inset-top)) 0 max(2rem, env(safe-area-inset-bottom));
+}
+
+.hero {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 2rem;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: #111827;
+  font-size: clamp(2.4rem, 12vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.06em;
+}
+
+.description {
+  margin: 0;
+  color: #64748b;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.65;
+}
+
+.chart {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+}
+
+.rowCard {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 1.25rem;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 1rem 2.5rem rgb(15 23 42 / 8%);
+  padding: 1rem;
+}
+
+.rowTitle {
+  margin: 0;
+  color: var(--color-primary-text);
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.characterGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.characterCard {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  border: 1px solid #eef2ff;
+  border-radius: 1rem;
+  background: #f8fafc;
+  color: #111827;
+  font-size: clamp(1.55rem, 8vw, 2.15rem);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3.5rem;
+  margin-top: 1.25rem;
+  border-radius: 1.125rem;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 0 1.125rem 2.5rem rgb(79 70 229 / 22%);
+}
+
+@media (min-width: 40rem) {
+  .page {
+    padding: 0 1.5rem;
+  }
+}
