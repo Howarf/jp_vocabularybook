@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AuthGuard from "@/src/components/AuthGuard";
 import MobileHeader from "@/src/components/MobileHeader";
+import sharedStyles from "../shared.module.css";
 import styles from "./hiragana.module.css";
 
 const hiraganaRows = [
@@ -21,21 +22,20 @@ const hiraganaRows = [
 export default function HiraganaPage() {
   return (
     <AuthGuard>
-      <main className={styles.page}>
-        <section className={styles.shell} aria-labelledby="hiragana-title">
-          <MobileHeader />
-
-          <div className={styles.hero}>
-            <p className={styles.eyebrow}>Kana chart</p>
-            <h1 id="hiragana-title" className={styles.title}>히라가나</h1>
-            <p className={styles.description}>
+      <main className={sharedStyles.contentPage}>
+        <MobileHeader />
+        <section className={sharedStyles.contentShell} aria-labelledby="hiragana-title">
+          <div className={sharedStyles.heroSection}>
+            <p className={sharedStyles.eyebrowText}>Kana chart</p>
+            <h1 id="hiragana-title" className={sharedStyles.pageTitle}>히라가나</h1>
+            <p className={sharedStyles.pageDescription}>
               50음도 순서에 맞춰 아행부터 차근차근 확인해 보세요.
             </p>
           </div>
 
           <div className={styles.chart} aria-label="히라가나 50음도 표">
             {hiraganaRows.map((hiraganaRow) => (
-              <section className={styles.rowCard} key={hiraganaRow.rowName}>
+              <section className={[sharedStyles.surfacePanel, styles.rowCard].join(" ")} key={hiraganaRow.rowName}>
                 <h2 className={styles.rowTitle}>{hiraganaRow.rowName}</h2>
                 <div className={styles.characterGrid}>
                   {hiraganaRow.characters.map((character) => (

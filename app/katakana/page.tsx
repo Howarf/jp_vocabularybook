@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AuthGuard from "@/src/components/AuthGuard";
 import MobileHeader from "@/src/components/MobileHeader";
+import sharedStyles from "../shared.module.css";
 import styles from "./katakana.module.css";
 
 const katakanaRows = [
@@ -21,21 +22,20 @@ const katakanaRows = [
 export default function KatakanaPage() {
   return (
     <AuthGuard>
-      <main className={styles.page}>
-        <section className={styles.shell} aria-labelledby="katakana-title">
-          <MobileHeader />
-
-          <div className={styles.hero}>
-            <p className={styles.eyebrow}>Kana chart</p>
-            <h1 id="katakana-title" className={styles.title}>가타카나</h1>
-            <p className={styles.description}>
+      <main className={sharedStyles.contentPage}>
+        <MobileHeader />
+        <section className={sharedStyles.contentShell} aria-labelledby="katakana-title">
+          <div className={sharedStyles.heroSection}>
+            <p className={sharedStyles.eyebrowText}>Kana chart</p>
+            <h1 id="katakana-title" className={sharedStyles.pageTitle}>가타카나</h1>
+            <p className={sharedStyles.pageDescription}>
               외래어와 의성어에 자주 쓰이는 가타카나를 행별로 익혀 보세요.
             </p>
           </div>
 
           <div className={styles.chart} aria-label="가타카나 50음도 표">
             {katakanaRows.map((katakanaRow) => (
-              <section className={styles.rowCard} key={katakanaRow.rowName}>
+              <section className={[sharedStyles.surfacePanel, styles.rowCard].join(" ")} key={katakanaRow.rowName}>
                 <h2 className={styles.rowTitle}>{katakanaRow.rowName}</h2>
                 <div className={styles.characterGrid}>
                   {katakanaRow.characters.map((character) => (

@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
+import { useEffect } from "react";
 import PublicOnlyGuard from "@/src/components/PublicOnlyGuard";
 import { isSupabaseConfigured, supabase } from "@/src/lib/supabaseClient";
 import { useAuthStore } from "@/src/stores/useAuthStore";
+import sharedStyles from "../shared.module.css";
 import styles from "./login.module.css";
 
 // 사용자가 Supabase 인증으로 로그인할 수 있는 화면을 렌더링합니다.
@@ -22,8 +24,14 @@ export default function LoginPage() {
     setIsLoading,
     setErrorMessage,
     setSuccessMessage,
+    resetLoginForm,
     resetMessages,
   } = useAuthStore();
+
+  useEffect(() => {
+    resetLoginForm();
+    resetMessages();
+  }, [resetLoginForm, resetMessages]);
 
   // 로그인 폼 제출을 검증하고 Supabase 인증 요청을 처리합니다.
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -60,22 +68,22 @@ export default function LoginPage() {
 
   return (
     <PublicOnlyGuard>
-      <main className={styles.page}>
-        <section className={styles.card} aria-labelledby="login-title">
-          <p className={styles.eyebrow}>Welcome back</p>
-          <h1 id="login-title" className={styles.title}>
+      <main className={sharedStyles.authPage}>
+        <section className={[sharedStyles.authCard, styles.card].join(" ")} aria-labelledby="login-title">
+          <p className={sharedStyles.authEyebrow}>Welcome back</p>
+          <h1 id="login-title" className={sharedStyles.authTitle}>
             로그인
           </h1>
-          <p className={styles.description}>
+          <p className={sharedStyles.authDescription}>
             가입한 아이디와 비밀번호로 일본어 단어장을 시작하세요.
           </p>
 
-          <form className={styles.form} onSubmit={handleSubmit}>
-            <label className={styles.label} htmlFor="login-id">
+          <form className={sharedStyles.authForm} onSubmit={handleSubmit}>
+            <label className={sharedStyles.authLabel} htmlFor="login-id">
               아이디
               <input
                 id="login-id"
-                className={styles.input}
+                className={sharedStyles.authInput}
                 type="email"
                 value={loginId}
                 onChange={(event) => setLoginId(event.target.value)}
@@ -84,11 +92,11 @@ export default function LoginPage() {
               />
             </label>
 
-            <label className={styles.label} htmlFor="login-password">
+            <label className={sharedStyles.authLabel} htmlFor="login-password">
               비밀번호
               <input
                 id="login-password"
-                className={styles.input}
+                className={sharedStyles.authInput}
                 type="password"
                 value={loginPassword}
                 onChange={(event) => setLoginPassword(event.target.value)}
@@ -97,17 +105,17 @@ export default function LoginPage() {
               />
             </label>
 
-            {errorMessage ? <p className={styles.error}>{errorMessage}</p> : null}
+            {errorMessage ? <p className={[sharedStyles.formMessage, sharedStyles.errorMessage].join(" ")}>{errorMessage}</p> : null}
             {successMessage ? (
-              <p className={styles.success}>{successMessage}</p>
+              <p className={[sharedStyles.formMessage, sharedStyles.successMessage].join(" ")}>{successMessage}</p>
             ) : null}
 
-            <button className={styles.button} type="submit" disabled={isLoading}>
+            <button className={sharedStyles.primaryButton} type="submit" disabled={isLoading}>
               {isLoading ? "로그인 중..." : "로그인"}
             </button>
           </form>
 
-          <p className={styles.helper}>
+          <p className={sharedStyles.authHelper}>
             아직 계정이 없나요? <Link href="/signup">회원가입</Link>
           </p>
         </section>

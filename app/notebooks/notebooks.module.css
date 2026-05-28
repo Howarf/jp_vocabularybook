@@ -1,43 +1,3 @@
-.page {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top right, rgb(79 70 229 / 12%), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  padding: 0 1rem;
-}
-
-.shell {
-  width: min(100%, 64rem);
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: max(2rem, env(safe-area-inset-top)) 0 max(2rem, env(safe-area-inset-bottom));
-}
-
-.eyebrow {
-  margin: 0 0 0.5rem;
-  color: var(--color-primary);
-  font-size: 0.8rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.title {
-  margin: 0;
-  color: #111827;
-  font-size: clamp(2rem, 9vw, 3.25rem);
-  font-weight: 900;
-  letter-spacing: -0.05em;
-}
-
-.description {
-  max-width: 34rem;
-  margin: 0.75rem 0 0;
-  color: #64748b;
-  font-size: 1rem;
-  line-height: 1.65;
-}
-
 .contentGrid {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr);
@@ -56,21 +16,14 @@
   padding: 1.25rem;
 }
 
-.sectionTitle {
-  margin: 0;
-  color: #111827;
-  font-size: clamp(1.2rem, 5vw, 1.55rem);
-  font-weight: 900;
-  letter-spacing: -0.03em;
+.panel {
+  border: 0;
 }
 
 .list,
 .wordList {
-  display: grid;
   gap: 0.75rem;
   margin: 1rem 0 0;
-  padding: 0;
-  list-style: none;
 }
 
 .card {
@@ -78,7 +31,6 @@
 }
 
 .cardButton {
-  display: grid;
   width: 100%;
   gap: 0.45rem;
   border: 1px solid #e5e7eb;
@@ -129,8 +81,7 @@
   line-height: 1.6;
 }
 
-.cardButton small,
-.countBadge {
+.cardButton small {
   color: var(--color-primary);
   font-weight: 900;
 }
@@ -234,21 +185,6 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-}
-
-.selectedLabel {
-  margin: 0 0 0.25rem;
-  color: #64748b;
-  font-size: 0.82rem;
-  font-weight: 900;
-}
-
-.countBadge {
-  flex: 0 0 auto;
-  border-radius: 999rem;
-  background: var(--color-primary-soft);
-  padding: 0.45rem 0.7rem;
-  font-size: 0.82rem;
 }
 
 .wordCard {
@@ -371,11 +307,7 @@
 }
 
 .learningStatePanel {
-  display: grid;
-  gap: 0.75rem;
   margin-top: 0.35rem;
-  border-radius: 1rem;
-  background: #f8fafc;
   padding: 0.4rem 0.8rem;
 }
 
@@ -385,32 +317,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-}
-
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999rem;
-  font-size: 0.78rem;
-  font-weight: 900;
-  padding: 0.38rem 0.65rem;
-}
-
-.memorizedBadge {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.learningBadge {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.answerCountText {
-  color: #475569;
-  font-size: 0.82rem;
-  font-weight: 900;
 }
 
 .removeButton {
@@ -431,32 +337,17 @@
 }
 
 .feedbackToast {
-  position: fixed;
   left: 50%;
-  bottom: max(1rem, env(safe-area-inset-bottom));
-  z-index: 60;
   width: max-content;
   max-width: min(calc(100vw - 2rem), 24rem);
-  border-radius: 999rem;
-  background: #111827;
-  color: #ffffff;
-  box-shadow: 0 1rem 2.5rem rgb(15 23 42 / 22%);
   font-size: 0.9rem;
-  font-weight: 900;
   line-height: 1.45;
-  padding: 0.85rem 1rem;
   text-align: center;
   transform: translateX(-50%);
 }
 
 .modalBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: grid;
-  place-items: center;
   padding: 1.25rem;
-  background: rgb(15 23 42 / 52%);
 }
 
 .modalCard {
@@ -469,41 +360,25 @@
 }
 
 .modalHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
   gap: 1rem;
 }
 
 .modalEyebrow {
   margin: 0 0 0.35rem;
-  color: var(--color-primary);
   font-size: 0.75rem;
-  font-weight: 900;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .modalTitle {
-  margin: 0;
-  color: #111827;
   font-size: clamp(1.35rem, 6vw, 1.75rem);
-  font-weight: 900;
   letter-spacing: -0.03em;
 }
 
 .modalCloseButton {
-  display: grid;
   width: 2.5rem;
   height: 2.5rem;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid #e5e7eb;
   border-radius: 999rem;
-  background: #ffffff;
-  color: #111827;
   font-size: 1.45rem;
-  cursor: pointer;
 }
 
 .modalCloseButton:disabled {
@@ -531,14 +406,6 @@
 }
 
 @media (max-width: 36rem) {
-  .page {
-    padding: 0 0.85rem;
-  }
-
-  .shell {
-    padding-top: 1.5rem;
-  }
-
   .panel,
   .emptyState,
   .notice {

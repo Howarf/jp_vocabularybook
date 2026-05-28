@@ -25,6 +25,7 @@ type AuthActions = {
   resetLoginForm: () => void;
   resetSignupForm: () => void;
   resetMessages: () => void;
+  resetAllAuthState: () => void;
 };
 
 const initialState: AuthState = {
@@ -75,4 +76,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
     }),
   // 인증 화면의 오류 및 성공 메시지를 초기화합니다.
   resetMessages: () => set({ errorMessage: "", successMessage: "" }),
+  // 인증 폼 입력값과 메시지 및 로딩 상태를 모두 초기화합니다.
+  resetAllAuthState: () => set(initialState),
 }));

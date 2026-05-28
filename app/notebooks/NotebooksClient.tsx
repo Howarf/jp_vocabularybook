@@ -24,6 +24,7 @@ import {
   wordReadingFields,
   wordTagFields,
 } from "@/src/utils/word";
+import sharedStyles from "../shared.module.css";
 import styles from "./notebooks.module.css";
 
 const swipeRevealMaximumWidth = 50;
@@ -471,12 +472,12 @@ export default function NotebooksClient() {
   };
 
   return (
-    <section className={styles.shell} aria-labelledby="notebooks-title">
-      <p className={styles.eyebrow}>My vocabulary books</p>
-      <h1 id="notebooks-title" className={styles.title}>
+    <section className={sharedStyles.contentShell} aria-labelledby="notebooks-title">
+      <p className={sharedStyles.eyebrowText}>My vocabulary books</p>
+      <h1 id="notebooks-title" className={sharedStyles.pageTitle}>
         내 단어장
       </h1>
-      <p className={styles.description}>
+      <p className={sharedStyles.pageDescription}>
         단어들을 학습하고 옆으로 밀어 단어장을 clear하세요.
       </p>
 
@@ -493,9 +494,9 @@ export default function NotebooksClient() {
 
       {!isVocabularyBooksLoading ? (
         <div className={styles.contentGrid}>
-          <section className={styles.panel} aria-label="내 단어장 목록">
+          <section className={[sharedStyles.surfacePanel, styles.panel].join(" ")} aria-label="내 단어장 목록">
             <div className={styles.listHeader}>
-              <h2 className={styles.sectionTitle}>단어장 목록</h2>
+              <h2 className={sharedStyles.sectionTitle}>단어장 목록</h2>
               <button
                 className={styles.createInlineButton}
                 onClick={handleOpenCreateVocabularyBookModal}
@@ -504,14 +505,14 @@ export default function NotebooksClient() {
                 새 단어장 만들기
               </button>
             </div>
-            <ul className={styles.list}>
+            <ul className={[sharedStyles.responsiveList, styles.list].join(" ")}>
               {vocabularyBooks.length === 0 ? (
                 <li className={styles.emptyListItem}>아직 만든 단어장이 없습니다.</li>
               ) : null}
               {vocabularyBooks.map((vocabularyBook) => (
                 <li className={styles.card} key={vocabularyBook.id}>
                   <button
-                    className={`${styles.cardButton} ${selectedVocabularyBookId === vocabularyBook.id ? styles.activeCardButton : ""}`}
+                    className={`${sharedStyles.interactiveCardButton} ${styles.cardButton} ${selectedVocabularyBookId === vocabularyBook.id ? styles.activeCardButton : ""}`}
                     onClick={() => handleSelectVocabularyBook(vocabularyBook.id)}
                     type="button"
                   >
@@ -528,16 +529,16 @@ export default function NotebooksClient() {
             </ul>
           </section>
 
-          <section className={styles.panel} aria-label="선택한 단어장의 단어 목록">
+          <section className={[sharedStyles.surfacePanel, styles.panel].join(" ")} aria-label="선택한 단어장의 단어 목록">
             <div className={styles.selectedHeader}>
               <div>
-                <p className={styles.selectedLabel}>선택한 단어장</p>
-                <h2 className={styles.sectionTitle}>
+                <p className={sharedStyles.selectedLabel}>선택한 단어장</p>
+                <h2 className={sharedStyles.sectionTitle}>
                   {selectedVocabularyBook?.title ?? "단어장을 선택해 주세요"}
                 </h2>
               </div>
               {selectedVocabularyBook ? (
-                <span className={styles.countBadge}>{selectedVocabularyBook.wordCount}개</span>
+                <span className={sharedStyles.countBadge}>{selectedVocabularyBook.wordCount}개</span>
               ) : null}
             </div>
 
@@ -550,7 +551,7 @@ export default function NotebooksClient() {
             ) : null}
 
             {!isWordsLoading && vocabularyBookWords.length > 0 ? (
-              <ul className={styles.wordList}>
+              <ul className={[sharedStyles.responsiveList, styles.wordList].join(" ")}>
                 {vocabularyBookWords.map((vocabularyBookWord) => {
                   const word = normalizeJoinedWord(vocabularyBookWord.words);
                   const wordText = word ? pickWordDisplayValue(word, wordExpressionFields) : "삭제되었거나 찾을 수 없는 단어";
@@ -607,12 +608,12 @@ export default function NotebooksClient() {
                           <p>{meaningText}</p>
                           {tagText !== "-" ? <small>{tagText}</small> : null}
                         </div>
-                        <div className={styles.learningStatePanel}>
+                        <div className={[sharedStyles.learningStatePanel, styles.learningStatePanel].join(" ")}>
                           <div className={styles.learningStateHeader}>
-                            <span className={`${styles.statusBadge} ${isMemorized ? styles.memorizedBadge : styles.learningBadge}`}>
+                            <span className={`${sharedStyles.statusBadge} ${isMemorized ? sharedStyles.memorizedBadge : sharedStyles.learningBadge}`}>
                               {isMemorized ? "외움" : "학습 중"}
                             </span>
-                            <span className={styles.answerCountText}>
+                            <span className={sharedStyles.answerCountText}>
                               정답 {correctCount}회 · 오답 {wrongCount}회
                             </span>
                           </div>
@@ -628,23 +629,23 @@ export default function NotebooksClient() {
       ) : null}
 
       {isCreateVocabularyBookModalOpen ? (
-        <div className={styles.modalBackdrop} role="presentation">
+        <div className={[sharedStyles.modalBackdrop, styles.modalBackdrop].join(" ")} role="presentation">
           <section
             aria-labelledby="create-vocabulary-book-modal-title"
             aria-modal="true"
             className={styles.modalCard}
             role="dialog"
           >
-            <div className={styles.modalHeader}>
+            <div className={[sharedStyles.modalHeader, styles.modalHeader].join(" ")}>
               <div>
-                <p className={styles.modalEyebrow}>Create vocabulary book</p>
-                <h2 id="create-vocabulary-book-modal-title" className={styles.modalTitle}>
+                <p className={[sharedStyles.modalEyebrow, styles.modalEyebrow].join(" ")}>Create vocabulary book</p>
+                <h2 id="create-vocabulary-book-modal-title" className={[sharedStyles.modalTitle, styles.modalTitle].join(" ")}>
                   새 단어장 만들기
                 </h2>
               </div>
               <button
                 aria-label="새 단어장 만들기 팝업 닫기"
-                className={styles.modalCloseButton}
+                className={[sharedStyles.modalCloseButton, styles.modalCloseButton].join(" ")}
                 disabled={isCreatingVocabularyBook}
                 onClick={handleCloseCreateVocabularyBookModal}
                 type="button"
@@ -688,7 +689,7 @@ export default function NotebooksClient() {
       ) : null}
 
       {feedbackMessage ? (
-        <section className={styles.feedbackToast} role="status">
+        <section className={[sharedStyles.toastMessage, styles.feedbackToast].join(" ")} role="status">
           {feedbackMessage}
         </section>
       ) : null}

@@ -1,86 +1,187 @@
-.page {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgb(99 102 241 / 12%), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  padding: 0 1rem;
-}
-
-.shell {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  width: min(100%, 26.875rem);
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: max(1.125rem, env(safe-area-inset-top)) 0 max(1.75rem, env(safe-area-inset-bottom));
-}
-
 .content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 0;
-  padding: 3rem 0;
+  width: min(100%, 64rem);
+  margin: 1.25rem 0;
+  padding: 0;
 }
 
-.buttonGroup {
+.contentGrid {
   display: grid;
-  width: min(100%, 20rem);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 0.9rem;
+  align-items: start;
+  width: 100%;
+}
+
+.shortContentColumn {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.longContentPanel {
+  align-self: stretch;
+  width: 100%;
+}
+
+.summaryPanel,
+.panel {
+  width: 100%;
+  padding: 1rem;
+}
+
+.summaryPanel {
+  display: grid;
   gap: 0.75rem;
 }
 
-.primaryLink,
-.secondaryLink {
-  display: inline-flex;
+.summaryHeader,
+.listHeader,
+.cardTitleRow,
+.progressMetaRow,
+.learningStateHeader {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 3.5rem;
-  border-radius: 1.125rem;
-  font-size: 1rem;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.summaryMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.metricCard {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  background: #f8fafc;
+  padding: 0.85rem;
+}
+
+.metricCard strong {
+  color: #111827;
+  font-size: clamp(1.45rem, 5vw, 2rem);
   font-weight: 900;
-  padding: 1rem 1.25rem;
-  text-align: center;
-  text-decoration: none;
+  letter-spacing: -0.04em;
 }
 
-.primaryLink {
-  background: var(--color-primary);
-  color: #ffffff;
-  box-shadow: 0 1.125rem 2.5rem rgb(79 70 229 / 22%);
-  transition:
-    box-shadow 160ms ease,
-    transform 160ms ease;
+.metricCard span {
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 900;
 }
 
-.secondaryLink {
-  border: 1px solid var(--color-primary-muted);
+.list,
+.progressList {
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+}
+
+.card,
+.progressCard {
+  min-width: 0;
+}
+
+.cardButton,
+.progressCard {
+  width: 100%;
+  gap: 0.45rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
   background: #ffffff;
-  color: var(--color-primary-text);
+  padding: 0.85rem;
+  text-align: left;
+  text-decoration: none;
   transition:
     border-color 160ms ease,
     background 160ms ease,
     transform 160ms ease;
 }
 
-.primaryLink:hover {
-  box-shadow: 0 1.25rem 3rem rgb(79 70 229 / 28%);
-  transform: translateY(-0.0625rem);
+.cardTitleRow strong,
+.progressCard strong {
+  min-width: 0;
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 900;
+  overflow-wrap: anywhere;
 }
 
-.secondaryLink:hover {
-  border-color: var(--color-primary);
+.cardTitleRow small {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.cardButton span,
+.progressCard span {
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.cardButton em {
+  justify-self: start;
+  border-radius: 999rem;
   background: var(--color-primary-soft);
-  transform: translateY(-0.0625rem);
+  color: var(--color-primary-text);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 900;
+  padding: 0.35rem 0.6rem;
 }
 
-@media (min-width: 32.5rem) {
-  .page {
-    padding: 0 1.5rem;
+.progressMetaRow {
+  margin-top: 0.35rem;
+}
+
+.progressTrack {
+  height: 0.55rem;
+  border-radius: 999rem;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+@media (max-width: 48rem) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 36rem) {
+  .summaryPanel,
+  .panel {
+    border-radius: 1rem;
+    padding: 1rem;
   }
 
-  .shell {
-    border-inline: 1px solid #eef2f7;
-    padding-inline: 1.125rem;
+  .summaryMetricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .listHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cardTitleRow {
+    flex-wrap: nowrap;
+  }
+
+  .cardTitleRow strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

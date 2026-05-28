@@ -17,6 +17,7 @@ import {
   wordTagFields,
 } from "@/src/utils/word";
 import WordCard from "./WordCard";
+import sharedStyles from "../shared.module.css";
 import styles from "./words.module.css";
 
 type SelectedWord = {
@@ -343,15 +344,15 @@ export default function WordsClient() {
   };
 
   return (
-    <main className={styles.page}>
+    <main className={sharedStyles.contentPage}>
       <MobileHeader />
 
       <section className={styles.header} aria-labelledby="words-title">
-        <p className={styles.eyebrow}>JLPT lexicon</p>
-        <h1 id="words-title" className={styles.title}>
+        <p className={sharedStyles.eyebrowText}>JLPT lexicon</p>
+        <h1 id="words-title" className={sharedStyles.pageTitle}>
           JLPT 사전
         </h1>
-        <p className={styles.description}>
+        <p className={sharedStyles.pageDescription}>
           N5에서 N2까지의 어휘들을 살펴보고<br/>
           단어를 왼쪽으로 밀어 단어장에 추가해 보세요.
         </p>
@@ -439,23 +440,23 @@ export default function WordsClient() {
       ) : null}
 
       {selectedWord ? (
-        <div className={styles.modalBackdrop} role="presentation">
+        <div className={[sharedStyles.modalBackdrop, styles.modalBackdrop].join(" ")} role="presentation">
           <section
             aria-labelledby="notebook-modal-title"
             aria-modal="true"
             className={styles.modalCard}
             role="dialog"
           >
-            <div className={styles.modalHeader}>
+            <div className={[sharedStyles.modalHeader, styles.modalHeader].join(" ")}>
               <div>
-                <p className={styles.modalEyebrow}>Add to vocabulary book</p>
-                <h2 id="notebook-modal-title" className={styles.modalTitle}>
+                <p className={[sharedStyles.modalEyebrow, styles.modalEyebrow].join(" ")}>Add to vocabulary book</p>
+                <h2 id="notebook-modal-title" className={[sharedStyles.modalTitle, styles.modalTitle].join(" ")}>
                   단어장 선택
                 </h2>
               </div>
               <button
                 aria-label="단어장 선택 팝업 닫기"
-                className={styles.closeButton}
+                className={[sharedStyles.modalCloseButton, styles.closeButton].join(" ")}
                 onClick={closeNotebookModal}
                 type="button"
               >
@@ -526,7 +527,7 @@ export default function WordsClient() {
       ) : null}
 
       {toastMessage ? (
-        <div className={styles.toast} role="status">
+        <div className={[sharedStyles.toastMessage, styles.toast].join(" ")} role="status">
           {toastMessage}
         </div>
       ) : null}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/src/lib/supabaseClient";
+import { useAuthStore } from "@/src/stores/useAuthStore";
 import styles from "./MobileHeader.module.css";
 
 // 메인 화면의 모바일 헤더와 햄버거 메뉴 패널을 렌더링합니다.
@@ -12,6 +13,7 @@ export default function MobileHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
+  const { resetAllAuthState } = useAuthStore();
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -47,7 +49,9 @@ export default function MobileHeader() {
   // Supabase 인증 세션을 종료하고 로그인 페이지로 이동합니다.
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    resetAllAuthState();
     await supabase.auth.signOut();
+    resetAllAuthState();
     setIsLoggingOut(false);
     router.replace("/login");
   };
