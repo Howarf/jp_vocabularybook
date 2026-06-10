@@ -8,7 +8,7 @@
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 0.9rem;
-  align-items: start;
+  align-items: stretch;
   width: 100%;
 }
 
@@ -19,22 +19,33 @@
   width: 100%;
 }
 
+.longContentColumn {
+  display: grid;
+  gap: 0.9rem;
+  align-self: stretch;
+  min-width: 0;
+  width: 100%;
+}
+
 .longContentPanel {
   align-self: stretch;
   width: 100%;
 }
 
+.todayWordPanel,
 .summaryPanel,
 .panel {
   width: 100%;
   padding: 1rem;
 }
 
+.todayWordPanel,
 .summaryPanel {
   display: grid;
   gap: 0.75rem;
 }
 
+.todayWordHeader,
 .summaryHeader,
 .listHeader,
 .cardTitleRow,
@@ -46,6 +57,222 @@
   justify-content: space-between;
   gap: 0.5rem 0.75rem;
   min-width: 0;
+}
+
+.todayWordHeader {
+  align-items: flex-start;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+.todayWordHeader > div {
+  min-width: 0;
+}
+
+.todayWordTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.moreWordsLink {
+  flex: 0 0 auto;
+  margin-left: auto;
+  border: 1px solid #d1fae5;
+  border-radius: 999rem;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 900;
+  padding: 0.45rem 0.7rem;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.moreWordsLink:hover,
+.moreWordsLink:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+  outline: none;
+}
+
+.todayWordTitle {
+  font-size: clamp(1.2rem, 5vw, 1.55rem);
+  font-weight: 900;
+}
+
+.todayWordCriteria {
+  width: 100%;
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.todayWordState {
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 900;
+  line-height: 1.6;
+  padding: 1rem;
+}
+
+.todayWordDeck {
+  width: 100%;
+  padding: 0.85rem 0 1.35rem;
+}
+
+.todayWordStack {
+  position: relative;
+  width: 100%;
+  min-height: 11.75rem;
+}
+
+.todayWordCard {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: grid;
+  width: 100%;
+  gap: 0.45rem;
+  align-content: start;
+  border: 0;
+  border-radius: 1rem;
+  background: #ffffff;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.9rem;
+  padding-right: 4.4rem;
+  text-align: left;
+  transform: translateY(calc(var(--today-word-depth) * 0.7rem)) scale(calc(1 - var(--today-word-depth) * 0.035));
+  transform-origin: center top;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.todayWordCard[data-depth="0"] {
+  z-index: 4;
+  opacity: 1;
+}
+
+.todayWordCard[data-depth="1"] {
+  z-index: 3;
+  opacity: 0.58;
+}
+
+.todayWordCard[data-depth="2"] {
+  z-index: 2;
+  opacity: 0.32;
+}
+
+.todayWordCard[data-depth="3"] {
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.todayWordCard[data-active="true"] {
+  box-shadow: 0 0.5rem 1rem #0f172a1a;
+}
+
+.todayWordCard[data-exiting="true"] {
+  opacity: 0;
+  transform: translateX(115%) rotate(4deg);
+}
+
+.todayWordCard:disabled {
+  cursor: default;
+}
+
+.todayWordCardCount {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.9rem;
+  border-radius: 999rem;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 0.32rem 0.55rem;
+}
+
+.todayWordExpression {
+  color: #111827;
+  font-size: clamp(2rem, 9vw, 3.2rem);
+  font-weight: 900;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.todayWordReading {
+  color: var(--color-primary);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.todayWordMeaning {
+  color: #374151;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.todayWordCard small {
+  justify-self: start;
+  border-radius: 999rem;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 900;
+  padding: 0.35rem 0.55rem;
+}
+
+.todayWordResetOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 82%);
+  backdrop-filter: blur(0.35rem);
+}
+
+.todayWordResetPanel {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+  color: #111827;
+  text-align: center;
+}
+
+.todayWordResetPanel strong {
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.todayWordResetPanel button {
+  border: 0;
+  border-radius: 999rem;
+  background: var(--color-primary);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  padding: 0.65rem 0.95rem;
 }
 
 .summaryMetricGrid {
@@ -153,6 +380,292 @@
   background: var(--color-primary);
 }
 
+.learningVocabularyBookPanel {
+  align-self: stretch;
+  height: 100%;
+  width: 100%;
+}
+
+.emptyLearningVocabularyBookState {
+  display: grid;
+  min-height: 15rem;
+  place-items: center;
+}
+
+.createVocabularyBookButton {
+  border: 0;
+  border-radius: 999rem;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 900;
+  padding: 0.8rem 1.1rem;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.createVocabularyBookButton:hover,
+.createVocabularyBookButton:focus-visible {
+  background: var(--color-primary-hover);
+  outline: none;
+  transform: translateY(-0.06rem);
+}
+
+.learningVocabularyBookList {
+  gap: 0.65rem;
+  margin: 0.9rem 0 0;
+}
+
+.learningVocabularyBookList[data-tall="true"] {
+  max-height: 36rem;
+}
+
+.learningVocabularyBookList[data-has-scroll="true"] {
+  max-height: 42rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+}
+
+.learningVocabularyBookItem {
+  min-width: 0;
+}
+
+.learningVocabularyBookCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  background: #ffffff;
+  padding: 0.85rem;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.learningVocabularyBookCard:has(.learningVocabularyBookLink:hover),
+.learningVocabularyBookCard:has(.learningVocabularyBookLink:focus-visible) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  transform: translateY(-0.06rem);
+}
+
+.learningVocabularyBookLink {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.learningVocabularyBookLink:focus-visible {
+  outline: none;
+}
+
+.learningVocabularyBookLink span {
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.learningVocabularyBookMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  justify-content: space-between;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.mockQuizButton {
+  align-self: stretch;
+  border: 1px solid #d1fae5;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  color: var(--color-primary);
+  cursor: default;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  padding: 0 0.85rem;
+}
+
+.quizInsightPanel {
+  display: grid;
+  gap: 0.85rem;
+  width: 100%;
+}
+
+.quizInsightGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.quizInsightCard {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  background: #ffffff;
+  padding: 0.9rem;
+}
+
+.quizWrongWordCard {
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.quizWrongWordCard:hover:not(:disabled),
+.quizWrongWordCard:focus-visible:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  outline: none;
+  transform: translateY(-0.06rem);
+}
+
+.quizWrongWordCard:disabled {
+  cursor: default;
+}
+
+.quizInsightCard span {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.quizInsightCard strong {
+  color: #111827;
+  font-size: clamp(1.65rem, 6vw, 2.35rem);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.quizInsightCard p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.retryWrongQuizButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  min-height: 2.35rem;
+  border: 0;
+  border-radius: 999rem;
+  background: var(--color-primary);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  padding: 0.55rem 0.8rem;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.retryWrongQuizButton:hover,
+.retryWrongQuizButton:focus-visible {
+  background: var(--color-primary-hover);
+  outline: none;
+  transform: translateY(-0.06rem);
+}
+
+.retryWrongQuizButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.quizReviewModalBackdrop {
+  padding: 1rem;
+}
+
+.quizReviewModalCard {
+  display: grid;
+  width: min(100%, 25rem);
+  gap: 1rem;
+  border-radius: 1.1rem;
+  background: #ffffff;
+  padding: 1.2rem;
+  box-shadow: 0 1.5rem 4rem rgb(15 23 42 / 24%);
+}
+
+.quizReviewModalEyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.quizReviewModalTitle {
+  margin: 0;
+  color: #111827;
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.quizReviewModalDescription {
+  margin: 0;
+  color: #475569;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.quizReviewModalActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.quizReviewCancelButton,
+.quizReviewConfirmLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.45rem;
+  border-radius: 999rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 900;
+  padding: 0.55rem 0.9rem;
+  text-decoration: none;
+}
+
+.quizReviewCancelButton {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+}
+
+.quizReviewConfirmLink {
+  border: 0;
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
 @media (max-width: 48rem) {
   .contentGrid {
     grid-template-columns: 1fr;
@@ -160,6 +673,7 @@
 }
 
 @media (max-width: 36rem) {
+  .todayWordPanel,
   .summaryPanel,
   .panel {
     border-radius: 1rem;
@@ -170,9 +684,17 @@
     grid-template-columns: 1fr;
   }
 
+  .quizInsightGrid {
+    grid-template-columns: 1fr;
+  }
+
   .listHeader {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .todayWordCard {
+    min-height: auto;
   }
 
   .cardTitleRow {
@@ -183,5 +705,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .learningVocabularyBookCard {
+    grid-template-columns: 1fr;
+  }
+
+  .mockQuizButton {
+    min-height: 2.5rem;
   }
 }

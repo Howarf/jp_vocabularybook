@@ -1,43 +1,32 @@
 "use client";
 
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type ChangeEvent,
   type PointerEvent,
 } from "react";
 import { supabase } from "@/src/lib/supabaseClient";
 import type {
-  VocabularyBookWithCount,
-  VocabularyBookWithLearningRows,
   VocabularyBookWordWithWord,
 } from "@/src/types/vocabulary";
-import {
-  normalizeJoinedWord,
-  pickWordDisplayValue,
-  wordExpressionFields,
-  wordKoreanMeaningFields,
-  wordReadingFields,
-  wordTagFields,
-} from "@/src/utils/word";
+import { useVocabularyBookStore } from "@/src/stores/useVocabularyBookStore";
+import { createVocabularyBookForUser } from "@/src/utils/vocabularyBook";
+import CreateNotebookModal from "./CreateNotebookModal";
+import NotebookList from "./NotebookList";
+import NotebooksToast from "./NotebooksToast";
+import SavedWordList from "./SavedWordList";
 import sharedStyles from "../shared.module.css";
 import styles from "./notebooks.module.css";
 
 const swipeRevealMaximumWidth = 50;
 const swipeToggleThresholdWidth = 45;
 
-// 단어장 단어 수와 학습 완료 단어 수로 학습 진행률을 계산합니다.
-function calculateLearningProgressPercentage(wordCount: number, learnedWordCount: number) {
-  if (wordCount === 0) {
-    return 0;
-  }
-
-  return Math.round((learnedWordCount / wordCount) * 100);
-}
+type NotebooksClientProps = {
+  initialVocabularyBookId?: string | null;
+};
 
 // 이벤트 대상이 카드 드래그보다 우선되어야 하는 조작 요소인지 확인합니다.
 function isInteractiveElement(eventTarget: EventTarget | null) {
@@ -45,23 +34,47 @@ function isInteractiveElement(eventTarget: EventTarget | null) {
 }
 
 // 실제 Supabase 데이터로 내 단어장 목록과 선택한 단어장의 단어 목록을 렌더링합니다.
-export default function NotebooksClient() {
-  const [vocabularyBooks, setVocabularyBooks] = useState<VocabularyBookWithCount[]>([]);
-  const [selectedVocabularyBookId, setSelectedVocabularyBookId] = useState<string | null>(null);
+export default function NotebooksClient({ initialVocabularyBookId = null }: NotebooksClientProps) {
   const [vocabularyBookWords, setVocabularyBookWords] = useState<VocabularyBookWordWithWord[]>([]);
-  const [isVocabularyBooksLoading, setIsVocabularyBooksLoading] = useState(true);
   const [isWordsLoading, setIsWordsLoading] = useState(false);
   const [isRemovingWordId, setIsRemovingWordId] = useState<string | null>(null);
   const [updatingLearningStateWordId, setUpdatingLearningStateWordId] = useState<string | null>(null);
   const [dragOffsetByWordId, setDragOffsetByWordId] = useState<Record<string, number>>({});
   const [draggingWordId, setDraggingWordId] = useState<string | null>(null);
+  const [manuallySelectedVocabularyBookId, setManuallySelectedVocabularyBookId] = useState<string | null>(null);
   const [newVocabularyBookTitle, setNewVocabularyBookTitle] = useState("");
   const [isCreatingVocabularyBook, setIsCreatingVocabularyBook] = useState(false);
   const [isCreateVocabularyBookModalOpen, setIsCreateVocabularyBookModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const vocabularyBooks = useVocabularyBookStore((state) => state.vocabularyBooks);
+  const isVocabularyBooksLoading = useVocabularyBookStore((state) => state.isVocabularyBooksLoading);
+  const vocabularyBookStoreErrorMessage = useVocabularyBookStore((state) => state.errorMessage);
+  const loadVocabularyBooksForUser = useVocabularyBookStore((state) => state.loadVocabularyBooksForUser);
+  const addVocabularyBook = useVocabularyBookStore((state) => state.addVocabularyBook);
+  const updateVocabularyBookAfterWordRemoval = useVocabularyBookStore((state) => state.updateVocabularyBookAfterWordRemoval);
+  const updateVocabularyBookLearningStatus = useVocabularyBookStore((state) => state.updateVocabularyBookLearningStatus);
   const pointerStartXRef = useRef<number | null>(null);
   const feedbackToastTimeoutRef = useRef<number | null>(null);
+
+  const selectedVocabularyBookId = useMemo(() => {
+    if (
+      manuallySelectedVocabularyBookId &&
+      vocabularyBooks.some((vocabularyBook) => vocabularyBook.id === manuallySelectedVocabularyBookId)
+    ) {
+      return manuallySelectedVocabularyBookId;
+    }
+
+    if (
+      initialVocabularyBookId &&
+      vocabularyBooks.some((vocabularyBook) => vocabularyBook.id === initialVocabularyBookId)
+    ) {
+      return initialVocabularyBookId;
+    }
+
+    return vocabularyBooks[0]?.id ?? null;
+  }, [initialVocabularyBookId, manuallySelectedVocabularyBookId, vocabularyBooks]);
 
   const selectedVocabularyBook = useMemo(
     () =>
@@ -71,92 +84,46 @@ export default function NotebooksClient() {
     [selectedVocabularyBookId, vocabularyBooks],
   );
 
-  // 현재 로그인한 사용자의 단어장 목록과 학습 진행률을 Supabase에서 조회합니다.
-  const fetchVocabularyBooks = useCallback(
-    async (shouldSelectFirstVocabularyBook = true) => {
-      setErrorMessage("");
+  useEffect(() => {
+    let isMounted = true;
 
+    // 단어장 조회와 생성에 필요한 현재 사용자 id를 한 번만 불러옵니다.
+    const loadCurrentUserId = async () => {
       const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
-      if (sessionError || !session) {
-        setErrorMessage(
-          sessionError
-            ? `세션 확인에 실패했습니다: ${sessionError.message}`
-            : "로그인 후 내 단어장을 볼 수 있습니다.",
-        );
-        setIsVocabularyBooksLoading(false);
+      if (!isMounted) {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("vocabulary_books")
-        .select("id,user_id,title,description,created_at,updated_at,vocabulary_book_words(status)")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
+      if (error || !user) {
         setErrorMessage(
-          `단어장을 불러오지 못했습니다. Supabase에 마이그레이션이 적용되었는지 확인해 주세요: ${error.message}`,
+          error
+            ? `사용자 정보를 확인하지 못했습니다: ${error.message}`
+            : "사용자 정보를 확인하지 못했습니다.",
         );
-        setVocabularyBooks([]);
-        setSelectedVocabularyBookId(null);
-        setIsVocabularyBooksLoading(false);
         return;
       }
 
-      const nextVocabularyBooks = (data ?? []).map((vocabularyBook: VocabularyBookWithLearningRows) => {
-        const vocabularyBookWords = vocabularyBook.vocabulary_book_words ?? [];
-        const wordCount = vocabularyBookWords.length;
-        const learnedWordCount = vocabularyBookWords.filter(
-          (vocabularyBookWord) => vocabularyBookWord.status === true,
-        ).length;
+      setCurrentUserId(user.id);
+    };
 
-        return {
-          id: vocabularyBook.id,
-          user_id: vocabularyBook.user_id,
-          title: vocabularyBook.title,
-          description: vocabularyBook.description,
-          created_at: vocabularyBook.created_at,
-          updated_at: vocabularyBook.updated_at,
-          wordCount,
-          learnedWordCount,
-          learningProgressPercentage: calculateLearningProgressPercentage(
-            wordCount,
-            learnedWordCount,
-          ),
-        };
-      });
+    void loadCurrentUserId();
 
-      setVocabularyBooks(nextVocabularyBooks);
-      if (shouldSelectFirstVocabularyBook) {
-        setSelectedVocabularyBookId((currentSelectedVocabularyBookId) => {
-          if (
-            currentSelectedVocabularyBookId &&
-            nextVocabularyBooks.some(
-              (vocabularyBook) => vocabularyBook.id === currentSelectedVocabularyBookId,
-            )
-          ) {
-            return currentSelectedVocabularyBookId;
-          }
-
-          return nextVocabularyBooks[0]?.id ?? null;
-        });
-      }
-      setIsVocabularyBooksLoading(false);
-    },
-    [],
-  );
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
-    const vocabularyBooksTimer = window.setTimeout(() => {
-      void fetchVocabularyBooks();
-    }, 0);
-
-    return () => window.clearTimeout(vocabularyBooksTimer);
-  }, [fetchVocabularyBooks]);
+    if (currentUserId) {
+      void Promise.resolve().then(() => {
+        void loadVocabularyBooksForUser(currentUserId);
+      });
+    }
+  }, [currentUserId, loadVocabularyBooksForUser]);
 
   useEffect(() => {
     if (feedbackToastTimeoutRef.current) {
@@ -227,7 +194,7 @@ export default function NotebooksClient() {
 
   // 사용자가 선택한 단어장 id를 현재 선택 상태로 변경합니다.
   const handleSelectVocabularyBook = (vocabularyBookId: string) => {
-    setSelectedVocabularyBookId(vocabularyBookId);
+    setManuallySelectedVocabularyBookId(vocabularyBookId);
     setVocabularyBookWords([]);
     setFeedbackMessage("");
   };
@@ -261,26 +228,13 @@ export default function NotebooksClient() {
     setIsCreatingVocabularyBook(true);
     setFeedbackMessage("");
 
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError || !session) {
-      setFeedbackMessage(
-        sessionError
-          ? `세션 확인에 실패했습니다: ${sessionError.message}`
-          : "로그인 후 단어장을 만들 수 있습니다.",
-      );
+    if (!currentUserId) {
+      setFeedbackMessage("사용자 정보를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.");
       setIsCreatingVocabularyBook(false);
       return;
     }
 
-    const { data, error } = await supabase
-      .from("vocabulary_books")
-      .insert({ title: trimmedTitle, user_id: session.user.id })
-      .select("id")
-      .single();
+    const { data, error } = await createVocabularyBookForUser(trimmedTitle, currentUserId);
 
     if (error) {
       setFeedbackMessage(`단어장을 만들지 못했습니다: ${error.message}`);
@@ -289,8 +243,8 @@ export default function NotebooksClient() {
     }
 
     setNewVocabularyBookTitle("");
-    setSelectedVocabularyBookId(data.id as string);
-    await fetchVocabularyBooks(false);
+    setManuallySelectedVocabularyBookId(data.id);
+    addVocabularyBook(data);
     setIsCreateVocabularyBookModalOpen(false);
     setFeedbackMessage(`'${trimmedTitle}' 단어장을 만들었습니다.`);
     setIsCreatingVocabularyBook(false);
@@ -326,25 +280,9 @@ export default function NotebooksClient() {
         (vocabularyBookWord) => vocabularyBookWord.id !== vocabularyBookWordId,
       ),
     );
-    setVocabularyBooks((currentVocabularyBooks) =>
-      currentVocabularyBooks.map((vocabularyBook) =>
-        vocabularyBook.id === selectedVocabularyBookId
-          ? {
-              ...vocabularyBook,
-              wordCount: Math.max(0, vocabularyBook.wordCount - 1),
-              learnedWordCount: removedVocabularyBookWord?.status
-                ? Math.max(0, vocabularyBook.learnedWordCount - 1)
-                : vocabularyBook.learnedWordCount,
-              learningProgressPercentage: calculateLearningProgressPercentage(
-                Math.max(0, vocabularyBook.wordCount - 1),
-                removedVocabularyBookWord?.status
-                  ? Math.max(0, vocabularyBook.learnedWordCount - 1)
-                  : vocabularyBook.learnedWordCount,
-              ),
-            }
-          : vocabularyBook,
-      ),
-    );
+    if (selectedVocabularyBookId) {
+      updateVocabularyBookAfterWordRemoval(selectedVocabularyBookId, Boolean(removedVocabularyBookWord?.status));
+    }
     setFeedbackMessage("단어장에서 단어를 제거했습니다.");
     setIsRemovingWordId(null);
   };
@@ -375,30 +313,17 @@ export default function NotebooksClient() {
           : vocabularyBookWord,
       ),
     );
-    setVocabularyBooks((currentVocabularyBooks) =>
-      currentVocabularyBooks.map((vocabularyBook) => {
-        if (vocabularyBook.id !== selectedVocabularyBookId) {
-          return vocabularyBook;
-        }
-
-        const currentVocabularyBookWord = vocabularyBookWords.find(
-          (vocabularyBookWord) => vocabularyBookWord.id === vocabularyBookWordId,
-        );
-        const wasMemorized = Boolean(currentVocabularyBookWord?.status);
-        const learnedWordCount = wasMemorized === nextStatus
-          ? vocabularyBook.learnedWordCount
-          : vocabularyBook.learnedWordCount + (nextStatus ? 1 : -1);
-
-        return {
-          ...vocabularyBook,
-          learnedWordCount,
-          learningProgressPercentage: calculateLearningProgressPercentage(
-            vocabularyBook.wordCount,
-            learnedWordCount,
-          ),
-        };
-      }),
+    const currentVocabularyBookWord = vocabularyBookWords.find(
+      (vocabularyBookWord) => vocabularyBookWord.id === vocabularyBookWordId,
     );
+
+    if (selectedVocabularyBookId) {
+      updateVocabularyBookLearningStatus(
+        selectedVocabularyBookId,
+        Boolean(currentVocabularyBookWord?.status),
+        nextStatus,
+      );
+    }
     setFeedbackMessage(nextStatus ? "외움 상태로 저장했습니다." : "학습 중 상태로 저장했습니다.");
     setUpdatingLearningStateWordId(null);
   };
@@ -481,10 +406,10 @@ export default function NotebooksClient() {
         단어들을 학습하고 옆으로 밀어 단어장을 clear하세요.
       </p>
 
-      {errorMessage ? (
+      {errorMessage || vocabularyBookStoreErrorMessage ? (
         <section className={styles.notice} role="alert">
           <strong>데이터를 불러오지 못했습니다.</strong>
-          <span>{errorMessage}</span>
+          <span>{errorMessage || vocabularyBookStoreErrorMessage}</span>
         </section>
       ) : null}
 
@@ -494,205 +419,41 @@ export default function NotebooksClient() {
 
       {!isVocabularyBooksLoading ? (
         <div className={styles.contentGrid}>
-          <section className={[sharedStyles.surfacePanel, styles.panel].join(" ")} aria-label="내 단어장 목록">
-            <div className={styles.listHeader}>
-              <h2 className={sharedStyles.sectionTitle}>단어장 목록</h2>
-              <button
-                className={styles.createInlineButton}
-                onClick={handleOpenCreateVocabularyBookModal}
-                type="button"
-              >
-                새 단어장 만들기
-              </button>
-            </div>
-            <ul className={[sharedStyles.responsiveList, styles.list].join(" ")}>
-              {vocabularyBooks.length === 0 ? (
-                <li className={styles.emptyListItem}>아직 만든 단어장이 없습니다.</li>
-              ) : null}
-              {vocabularyBooks.map((vocabularyBook) => (
-                <li className={styles.card} key={vocabularyBook.id}>
-                  <button
-                    className={`${sharedStyles.interactiveCardButton} ${styles.cardButton} ${selectedVocabularyBookId === vocabularyBook.id ? styles.activeCardButton : ""}`}
-                    onClick={() => handleSelectVocabularyBook(vocabularyBook.id)}
-                    type="button"
-                  >
-                    <div className={styles.cardTitleRow}>
-                      <strong>{vocabularyBook.title}</strong>
-                      <small>
-                        {vocabularyBook.learnedWordCount} / {vocabularyBook.wordCount}개 학습 · {vocabularyBook.learningProgressPercentage}%
-                      </small>
-                    </div>
-                    <span>{vocabularyBook.description ?? "설명 없는 단어장입니다."}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <NotebookList
+            onCreateVocabularyBook={handleOpenCreateVocabularyBookModal}
+            onSelectVocabularyBook={handleSelectVocabularyBook}
+            selectedVocabularyBookId={selectedVocabularyBookId}
+            vocabularyBooks={vocabularyBooks}
+          />
 
-          <section className={[sharedStyles.surfacePanel, styles.panel].join(" ")} aria-label="선택한 단어장의 단어 목록">
-            <div className={styles.selectedHeader}>
-              <div>
-                <p className={sharedStyles.selectedLabel}>선택한 단어장</p>
-                <h2 className={sharedStyles.sectionTitle}>
-                  {selectedVocabularyBook?.title ?? "단어장을 선택해 주세요"}
-                </h2>
-              </div>
-              {selectedVocabularyBook ? (
-                <span className={sharedStyles.countBadge}>{selectedVocabularyBook.wordCount}개</span>
-              ) : null}
-            </div>
-
-            {isWordsLoading ? (
-              <div className={styles.emptyState}>단어를 불러오는 중입니다...</div>
-            ) : null}
-
-            {!isWordsLoading && selectedVocabularyBook && vocabularyBookWords.length === 0 ? (
-              <div className={styles.emptyState}>이 단어장에 담긴 단어가 없습니다.</div>
-            ) : null}
-
-            {!isWordsLoading && vocabularyBookWords.length > 0 ? (
-              <ul className={[sharedStyles.responsiveList, styles.wordList].join(" ")}>
-                {vocabularyBookWords.map((vocabularyBookWord) => {
-                  const word = normalizeJoinedWord(vocabularyBookWord.words);
-                  const wordText = word ? pickWordDisplayValue(word, wordExpressionFields) : "삭제되었거나 찾을 수 없는 단어";
-                  const readingText = word ? pickWordDisplayValue(word, wordReadingFields) : "-";
-                  const meaningText = word ? pickWordDisplayValue(word, wordKoreanMeaningFields) : "원본 words 데이터를 확인해 주세요.";
-                  const tagText = word ? pickWordDisplayValue(word, wordTagFields) : "-";
-                  const isMemorized = Boolean(vocabularyBookWord.status);
-                  const correctCount = vocabularyBookWord.correct_count ?? 0;
-                  const wrongCount = vocabularyBookWord.wrong_count ?? 0;
-                  const isLearningStateUpdating = updatingLearningStateWordId === vocabularyBookWord.id;
-                  const wordCardDragOffset = dragOffsetByWordId[vocabularyBookWord.id] ?? 0;
-                  const wordCardRevealWidth = Math.abs(wordCardDragOffset);
-                  const nextLearningStatusText = isMemorized ? "학습 중으로 변경" : "외움으로 변경";
-                  const swipeWordCardStyle = {
-                    "--slide-reveal": `${wordCardRevealWidth}px`,
-                  } as CSSProperties;
-
-                  return (
-                    <li className={styles.wordCard} key={vocabularyBookWord.id}>
-                      <button
-                        aria-label={`${wordText} 상태를 ${nextLearningStatusText}`}
-                        className={styles.slideActionButton}
-                        disabled={isLearningStateUpdating || isRemovingWordId === vocabularyBookWord.id}
-                        onClick={() => handleToggleLearningStatus(vocabularyBookWord)}
-                        type="button"
-                      >
-                        {isLearningStateUpdating ? "변경 중" : nextLearningStatusText}
-                      </button>
-                      <div
-                        className={styles.swipeWordCard}
-                        data-dragging={draggingWordId === vocabularyBookWord.id}
-                        onPointerCancel={(event) => handleWordCardPointerEnd(vocabularyBookWord, event)}
-                        onPointerDown={(event) => handleWordCardPointerDown(vocabularyBookWord.id, event)}
-                        onPointerLeave={(event) => handleWordCardPointerEnd(vocabularyBookWord, event)}
-                        onPointerMove={(event) => handleWordCardPointerMove(vocabularyBookWord.id, event)}
-                        onPointerUp={(event) => handleWordCardPointerEnd(vocabularyBookWord, event)}
-                        style={swipeWordCardStyle}
-                      >
-                        <div className={styles.wordTopRow}>
-                          <div className={styles.wordTitleRow}>
-                            <strong>{wordText}</strong>
-                            {readingText !== "-" ? <span>{readingText}</span> : null}
-                          </div>
-                          <button
-                            className={styles.removeButton}
-                            disabled={isRemovingWordId === vocabularyBookWord.id || isLearningStateUpdating}
-                            onClick={() => handleRemoveWord(vocabularyBookWord.id)}
-                            type="button"
-                          >
-                            {isRemovingWordId === vocabularyBookWord.id ? "제거 중" : "제거"}
-                          </button>
-                        </div>
-                        <div className={styles.wordMeaningRow}>
-                          <p>{meaningText}</p>
-                          {tagText !== "-" ? <small>{tagText}</small> : null}
-                        </div>
-                        <div className={[sharedStyles.learningStatePanel, styles.learningStatePanel].join(" ")}>
-                          <div className={styles.learningStateHeader}>
-                            <span className={`${sharedStyles.statusBadge} ${isMemorized ? sharedStyles.memorizedBadge : sharedStyles.learningBadge}`}>
-                              {isMemorized ? "외움" : "학습 중"}
-                            </span>
-                            <span className={sharedStyles.answerCountText}>
-                              정답 {correctCount}회 · 오답 {wrongCount}회
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-          </section>
+          <SavedWordList
+            dragOffsetByWordId={dragOffsetByWordId}
+            draggingWordId={draggingWordId}
+            isRemovingWordId={isRemovingWordId}
+            isWordsLoading={isWordsLoading}
+            onPointerDown={handleWordCardPointerDown}
+            onPointerEnd={handleWordCardPointerEnd}
+            onPointerMove={handleWordCardPointerMove}
+            onRemoveWord={handleRemoveWord}
+            onToggleLearningStatus={handleToggleLearningStatus}
+            selectedVocabularyBook={selectedVocabularyBook}
+            updatingLearningStateWordId={updatingLearningStateWordId}
+            vocabularyBookWords={vocabularyBookWords}
+          />
         </div>
       ) : null}
 
       {isCreateVocabularyBookModalOpen ? (
-        <div className={[sharedStyles.modalBackdrop, styles.modalBackdrop].join(" ")} role="presentation">
-          <section
-            aria-labelledby="create-vocabulary-book-modal-title"
-            aria-modal="true"
-            className={styles.modalCard}
-            role="dialog"
-          >
-            <div className={[sharedStyles.modalHeader, styles.modalHeader].join(" ")}>
-              <div>
-                <p className={[sharedStyles.modalEyebrow, styles.modalEyebrow].join(" ")}>Create vocabulary book</p>
-                <h2 id="create-vocabulary-book-modal-title" className={[sharedStyles.modalTitle, styles.modalTitle].join(" ")}>
-                  새 단어장 만들기
-                </h2>
-              </div>
-              <button
-                aria-label="새 단어장 만들기 팝업 닫기"
-                className={[sharedStyles.modalCloseButton, styles.modalCloseButton].join(" ")}
-                disabled={isCreatingVocabularyBook}
-                onClick={handleCloseCreateVocabularyBookModal}
-                type="button"
-              >
-                ×
-              </button>
-            </div>
-            <div className={styles.modalForm}>
-              <label className={styles.createLabel} htmlFor="new-vocabulary-book-title">
-                단어장 이름
-              </label>
-              <input
-                className={styles.createInput}
-                id="new-vocabulary-book-title"
-                onChange={handleNewVocabularyBookTitleChange}
-                placeholder="예: 매일 복습 단어장"
-                type="text"
-                value={newVocabularyBookTitle}
-              />
-              <div className={styles.modalActionRow}>
-                <button
-                  className={styles.cancelButton}
-                  disabled={isCreatingVocabularyBook}
-                  onClick={handleCloseCreateVocabularyBookModal}
-                  type="button"
-                >
-                  취소
-                </button>
-                <button
-                  className={styles.createButton}
-                  disabled={isCreatingVocabularyBook}
-                  onClick={handleCreateVocabularyBook}
-                  type="button"
-                >
-                  {isCreatingVocabularyBook ? "생성 중" : "생성"}
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
+        <CreateNotebookModal
+          isCreatingVocabularyBook={isCreatingVocabularyBook}
+          newVocabularyBookTitle={newVocabularyBookTitle}
+          onClose={handleCloseCreateVocabularyBookModal}
+          onCreateVocabularyBook={handleCreateVocabularyBook}
+          onNewVocabularyBookTitleChange={handleNewVocabularyBookTitleChange}
+        />
       ) : null}
 
-      {feedbackMessage ? (
-        <section className={[sharedStyles.toastMessage, styles.feedbackToast].join(" ")} role="status">
-          {feedbackMessage}
-        </section>
-      ) : null}
+      <NotebooksToast feedbackMessage={feedbackMessage} />
     </section>
   );
 }

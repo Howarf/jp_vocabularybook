@@ -4,25 +4,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/src/lib/supabaseClient";
-import { useAuthStore } from "@/src/stores/useAuthStore";
-import styles from "./MobileHeader.module.css";
+import { useVocabularyBookStore } from "@/src/stores/useVocabularyBookStore";
+import styles from "./AppHeader.module.css";
 
-// 메인 화면의 모바일 헤더와 햄버거 메뉴 패널을 렌더링합니다.
-export default function MobileHeader() {
+// 헤더의 햄버거 버튼과 메뉴 패널의 클라이언트 상호작용을 렌더링합니다.
+export default function HeaderMenuButton() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const headerRef = useRef<HTMLElement | null>(null);
-  const { resetAllAuthState } = useAuthStore();
+  const menuContainerRef = useRef<HTMLDivElement | null>(null);
+  const resetVocabularyBookState = useVocabularyBookStore((state) => state.resetVocabularyBookState);
 
   useEffect(() => {
     if (!isMenuOpen) {
       return undefined;
     }
 
-    // 헤더 바깥 포인터 입력을 감지해 열린 햄버거 메뉴를 닫습니다.
+    // 메뉴 영역 바깥 포인터 입력을 감지해 열린 햄버거 메뉴를 닫습니다.
     const handleDocumentPointerDown = (event: globalThis.PointerEvent) => {
-      if (headerRef.current?.contains(event.target as Node)) {
+      if (menuContainerRef.current?.contains(event.target as Node)) {
         return;
       }
 
@@ -49,16 +49,15 @@ export default function MobileHeader() {
   // Supabase 인증 세션을 종료하고 로그인 페이지로 이동합니다.
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    resetAllAuthState();
+    resetVocabularyBookState();
     await supabase.auth.signOut();
-    resetAllAuthState();
+    resetVocabularyBookState();
     setIsLoggingOut(false);
     router.replace("/login");
   };
 
   return (
-    <header className={styles.header} ref={headerRef}>
-      <h1 className={styles.logo}>JLPT단어장</h1>
+    <div className={styles.menuContainer} ref={menuContainerRef}>
       <button
         className={styles.menuButton}
         type="button"
@@ -80,12 +79,6 @@ export default function MobileHeader() {
         <Link className={styles.menuLink} href="/" onClick={handleCloseMenu}>
           메인
         </Link>
-        <Link className={styles.menuLink} href="/hiragana" onClick={handleCloseMenu}>
-          히라가나
-        </Link>
-        <Link className={styles.menuLink} href="/katakana" onClick={handleCloseMenu}>
-          가타카나
-        </Link>
         <Link className={styles.menuLink} href="/words" onClick={handleCloseMenu}>
           JLPT단어 보기
         </Link>
@@ -96,6 +89,12 @@ export default function MobileHeader() {
         >
           내 단어장
         </Link>
+        <Link className={styles.menuLink} href="/hiragana" onClick={handleCloseMenu}>
+          히라가나
+        </Link>
+        <Link className={styles.menuLink} href="/katakana" onClick={handleCloseMenu}>
+          가타카나
+        </Link>
         <button
           className={styles.logoutButton}
           type="button"
@@ -105,6 +104,6 @@ export default function MobileHeader() {
           {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
         </button>
       </nav>
-    </header>
+    </div>
   );
 }

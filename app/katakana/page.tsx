@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AuthGuard from "@/src/components/AuthGuard";
-import MobileHeader from "@/src/components/MobileHeader";
+import AppHeader from "@/src/components/AppHeader";
 import sharedStyles from "../shared.module.css";
 import styles from "./katakana.module.css";
 
@@ -23,7 +23,7 @@ export default function KatakanaPage() {
   return (
     <AuthGuard>
       <main className={sharedStyles.contentPage}>
-        <MobileHeader />
+        <AppHeader />
         <section className={sharedStyles.contentShell} aria-labelledby="katakana-title">
           <div className={sharedStyles.heroSection}>
             <p className={sharedStyles.eyebrowText}>Kana chart</p>

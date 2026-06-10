@@ -3,46 +3,29 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useEffect } from "react";
+import { useState } from "react";
 import PublicOnlyGuard from "@/src/components/PublicOnlyGuard";
-import { isSupabaseConfigured, supabase } from "@/src/lib/supabaseClient";
-import { useAuthStore } from "@/src/stores/useAuthStore";
+import { isSupabaseConfigured, supabase, supabaseConfigurationMessage } from "@/src/lib/supabaseClient";
 import sharedStyles from "../shared.module.css";
 import styles from "./signup.module.css";
 
 // 사용자가 새 계정을 만들고 프로필을 저장할 수 있는 회원가입 화면을 렌더링합니다.
 export default function SignupPage() {
   const router = useRouter();
-  const {
-    signupId,
-    signupPassword,
-    signupPasswordConfirm,
-    nickname,
-    isLoading,
-    errorMessage,
-    successMessage,
-    setSignupId,
-    setSignupPassword,
-    setSignupPasswordConfirm,
-    setNickname,
-    setIsLoading,
-    setErrorMessage,
-    resetMessages,
-    resetSignupForm,
-  } = useAuthStore();
-
-  useEffect(() => {
-    resetSignupForm();
-    resetMessages();
-  }, [resetMessages, resetSignupForm]);
+  const [signupId, setSignupId] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // 회원가입 폼 제출을 검증하고 Supabase 계정 및 프로필 생성을 처리합니다.
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    resetMessages();
+    setErrorMessage("");
 
     if (!isSupabaseConfigured) {
-      setErrorMessage("Supabase URL과 publishable key 환경변수를 설정해 주세요.");
+      setErrorMessage(supabaseConfigurationMessage);
       return;
     }
 
@@ -89,7 +72,7 @@ export default function SignupPage() {
     }
 
     const now = new Date().toISOString();
-    const {} = await supabase.from("profiles").upsert(
+    const { error: profileUpsertError } = await supabase.from("profiles").upsert(
       {
         id: userId,
         display_name: nickname.trim(),
@@ -99,9 +82,20 @@ export default function SignupPage() {
       { onConflict: "id" },
     );
 
+    if (profileUpsertError) {
+      setIsLoading(false);
+      setErrorMessage(
+        `회원가입 계정은 생성되었지만 프로필을 저장하지 못했습니다: ${profileUpsertError.message}`,
+      );
+      return;
+    }
+
     setIsLoading(false);
 
-    resetSignupForm();
+    setSignupId("");
+    setSignupPassword("");
+    setSignupPasswordConfirm("");
+    setNickname("");
     router.push("/login");
   };
 
@@ -171,9 +165,6 @@ export default function SignupPage() {
             </label>
 
             {errorMessage ? <p className={[sharedStyles.formMessage, sharedStyles.errorMessage].join(" ")}>{errorMessage}</p> : null}
-            {successMessage ? (
-              <p className={[sharedStyles.formMessage, sharedStyles.successMessage].join(" ")}>{successMessage}</p>
-            ) : null}
 
             <button className={sharedStyles.primaryButton} type="submit" disabled={isLoading}>
               {isLoading ? "가입 중..." : "회원가입"}

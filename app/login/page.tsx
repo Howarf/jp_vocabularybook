@@ -3,43 +3,29 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useEffect } from "react";
+import { useState } from "react";
 import PublicOnlyGuard from "@/src/components/PublicOnlyGuard";
-import { isSupabaseConfigured, supabase } from "@/src/lib/supabaseClient";
-import { useAuthStore } from "@/src/stores/useAuthStore";
+import { isSupabaseConfigured, supabase, supabaseConfigurationMessage } from "@/src/lib/supabaseClient";
 import sharedStyles from "../shared.module.css";
 import styles from "./login.module.css";
 
 // 사용자가 Supabase 인증으로 로그인할 수 있는 화면을 렌더링합니다.
 export default function LoginPage() {
   const router = useRouter();
-  const {
-    loginId,
-    loginPassword,
-    isLoading,
-    errorMessage,
-    successMessage,
-    setLoginId,
-    setLoginPassword,
-    setIsLoading,
-    setErrorMessage,
-    setSuccessMessage,
-    resetLoginForm,
-    resetMessages,
-  } = useAuthStore();
-
-  useEffect(() => {
-    resetLoginForm();
-    resetMessages();
-  }, [resetLoginForm, resetMessages]);
+  const [loginId, setLoginId] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   // 로그인 폼 제출을 검증하고 Supabase 인증 요청을 처리합니다.
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    resetMessages();
+    setErrorMessage("");
+    setSuccessMessage("");
 
     if (!isSupabaseConfigured) {
-      setErrorMessage("Supabase URL과 publishable key 환경변수를 설정해 주세요.");
+      setErrorMessage(supabaseConfigurationMessage);
       return;
     }
 

@@ -16,6 +16,11 @@
   letter-spacing: -0.04em;
 }
 
+.menuContainer {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .menuButton {
   display: inline-grid;
   width: 2.75rem;
@@ -90,7 +95,7 @@
 }
 
 .logoutButton:disabled {
-  cursor: not-allowed;
+  cursor: pointer;
   opacity: 0.65;
 }
 
