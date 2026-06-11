@@ -398,13 +398,15 @@ export default function NotebooksClient({ initialVocabularyBookId = null }: Note
 
   return (
     <section className={sharedStyles.contentShell} aria-labelledby="notebooks-title">
-      <p className={sharedStyles.eyebrowText}>My vocabulary books</p>
-      <h1 id="notebooks-title" className={sharedStyles.pageTitle}>
-        내 단어장
-      </h1>
-      <p className={sharedStyles.pageDescription}>
-        단어들을 학습하고 옆으로 밀어 단어장을 clear하세요.
-      </p>
+      <div className={sharedStyles.heroSection}>
+        <p className={sharedStyles.eyebrowText}>My vocabulary books</p>
+        <h1 id="notebooks-title" className={sharedStyles.pageTitle}>
+          내 단어장
+        </h1>
+        <p className={sharedStyles.pageDescription}>
+          단어들을 학습하고 옆으로 밀어 단어장을 clear하세요.
+        </p>
+      </div>
 
       {errorMessage || vocabularyBookStoreErrorMessage ? (
         <section className={styles.notice} role="alert">

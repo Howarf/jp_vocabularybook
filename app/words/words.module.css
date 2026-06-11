@@ -501,9 +501,12 @@
 }
 
 @media (max-width: 720px) {
-  .header,
   .card {
     padding: 28px;
+  }
+
+  .header {
+    display: none;
   }
 
   .item {

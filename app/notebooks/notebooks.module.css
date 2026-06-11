@@ -26,6 +26,14 @@
   margin: 1rem 0 0;
 }
 
+.notebookListCollapseFrame {
+  margin-top: 1rem;
+}
+
+.notebookListCollapseFrame .list {
+  margin: 0;
+}
+
 .card {
   min-width: 0;
 }
@@ -98,6 +106,14 @@
   gap: 0.75rem;
 }
 
+.notebookListHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
 .createLabel {
   color: #111827;
   font-size: 0.92rem;
@@ -128,6 +144,7 @@
 
 .createButton,
 .createInlineButton,
+.mobileListToggleButton,
 .cancelButton {
   border: 0;
   border-radius: 0.95rem;
@@ -141,6 +158,13 @@
 .createInlineButton {
   background: var(--color-primary);
   color: #ffffff;
+}
+
+.mobileListToggleButton {
+  display: none;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #475569;
 }
 
 .cancelButton {
@@ -209,7 +233,7 @@
   justify-content: center;
   width: 8rem;
   border: 0;
-  border-radius: 0 1rem 1rem 0;
+  border-radius: 0 1.1rem 1.1rem 0;
   background: var(--color-primary);
   color: #ffffff;
   font-size: 0.82rem;
@@ -423,16 +447,63 @@
     align-items: start;
   }
 
-  .listHeader,
   .modalActionRow {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .createInlineButton,
   .cancelButton,
   .createButton {
     width: 100%;
+  }
+
+  .listHeader {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .notebookListHeaderActions {
+    flex: 0 0 auto;
+    gap: 0.4rem;
+  }
+
+  .mobileListToggleButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  .notebookListCollapseFrame {
+    display: grid;
+    grid-template-rows: 1fr;
+    overflow: hidden;
+    padding-top: 1px;
+    transition:
+      grid-template-rows 0.3s ease,
+      padding-top 0.3s ease,
+      margin-top 0.3s ease;
+  }
+
+  .notebookListCollapseFrame[data-collapsed="true"] {
+    grid-template-rows: 0fr;
+    margin-top: 0;
+    padding-top: 0;
+    pointer-events: none;
+  }
+
+  .notebookListCollapseFrame .list {
+    min-height: 0;
+    transition: opacity 0s linear 0.1s;
+  }
+
+  .notebookListCollapseFrame[data-collapsed="true"] .list {
+    opacity: 0;
+  }
+
+  .createInlineButton {
+    width: auto;
+    padding-inline: 0.75rem;
   }
 
   .cardTitleRow {

@@ -13,13 +13,15 @@ export default function Home() {
       <main className={sharedStyles.contentPage}>
         <AppHeader />
         <section className={sharedStyles.contentShell} aria-labelledby="home-title">
-          <p className={sharedStyles.eyebrowText}>Study dashboard</p>
-          <h1 id="home-title" className={sharedStyles.pageTitle}>
-            일본어 학습 홈
-          </h1>
-          <p className={sharedStyles.pageDescription}>
-            오늘 학습할 단어와 단어장 진행도, 퀴즈 복습 정보를 한눈에 확인하세요.
-          </p>
+          <div className={sharedStyles.heroSection}>
+            <p className={sharedStyles.eyebrowText}>Study dashboard</p>
+            <h1 id="home-title" className={sharedStyles.pageTitle}>
+              일본어 학습 홈
+            </h1>
+            <p className={sharedStyles.pageDescription}>
+              오늘 학습할 단어와 단어장 진행도, 퀴즈 복습 정보를 한눈에 확인하세요.
+            </p>
+          </div>
 
           <div className={styles.content}>
             <div className={styles.contentGrid}>

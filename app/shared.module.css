@@ -108,7 +108,7 @@
 .responsiveList {
   display: grid;
   margin: 1rem 0 0;
-  padding: 0;
+  padding: 1px 0 0;
   list-style: none;
 }
 
@@ -315,6 +315,10 @@
 @media (max-width: 36rem) {
   .contentPage {
     padding: 1.25rem 0.85rem 2rem;
+  }
+
+  .heroSection {
+    display: none;
   }
 }
 

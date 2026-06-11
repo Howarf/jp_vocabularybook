@@ -88,7 +88,7 @@ export const useVocabularyBookStore = create<VocabularyBookState & VocabularyBoo
       .from("vocabulary_books")
       .select("id,user_id,title,description,created_at,updated_at,vocabulary_book_words(status)")
       .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
 
     if (error) {
       set({
@@ -109,10 +109,10 @@ export const useVocabularyBookStore = create<VocabularyBookState & VocabularyBoo
       errorMessage: "",
     });
   },
-  // 새로 생성된 단어장을 전역 단어장 목록 맨 앞에 추가합니다.
+  // 새로 생성된 단어장을 생성 순서에 맞게 전역 단어장 목록 끝에 추가합니다.
   addVocabularyBook: (vocabularyBook) => {
     set((currentState) => ({
-      vocabularyBooks: [createEmptyVocabularyBookWithCount(vocabularyBook), ...currentState.vocabularyBooks],
+      vocabularyBooks: [...currentState.vocabularyBooks, createEmptyVocabularyBookWithCount(vocabularyBook)],
     }));
   },
   // 단어 삭제 후 선택한 단어장의 단어 수와 학습 진행률을 갱신합니다.

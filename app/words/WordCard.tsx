@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, PointerEvent } from "react";
+import type { CSSProperties, MouseEvent, PointerEvent } from "react";
 import { useRef, useState } from "react";
 import styles from "./words.module.css";
 
@@ -28,15 +28,25 @@ export default function WordCard({
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const pointerStartXRef = useRef<number | null>(null);
-  const hasEnglishMeaning = englishMeaning !== "-";
+  const normalizedEnglishMeaning = englishMeaning.trim();
+  const hasEnglishMeaning = normalizedEnglishMeaning !== "" && normalizedEnglishMeaning !== "-";
   const meaning = isEnglishMeaning && hasEnglishMeaning ? englishMeaning : koreanMeaning;
   const revealWidth = Math.abs(dragOffset);
   const swipeCardStyle = {
     "--slide-reveal": `${revealWidth}px`,
   } as CSSProperties;
 
+  // 뜻 전환 버튼처럼 카드 내부 조작 요소에서 시작한 포인터 이벤트인지 확인합니다.
+  const isInteractivePointerTarget = (eventTarget: EventTarget) => {
+    return eventTarget instanceof HTMLElement && eventTarget.closest("button");
+  };
+
   // 포인터 드래그 시작 위치를 저장하고 카드 드래그 상태를 활성화합니다.
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (isInteractivePointerTarget(event.target)) {
+      return;
+    }
+
     pointerStartXRef.current = event.clientX;
     setIsDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -71,6 +81,12 @@ export default function WordCard({
     setDragOffset(0);
   };
 
+  // 뜻 전환 버튼 클릭 시 카드 드래그 동작과 분리해 표시 언어를 바꿉니다.
+  const handleMeaningToggleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    setIsEnglishMeaning((current) => !current);
+  };
+
   return (
     <li className={styles.item}>
       <div className={styles.slideAction} aria-hidden="true">
@@ -92,7 +108,8 @@ export default function WordCard({
             <button
               className={styles.meaningToggle}
               disabled={!hasEnglishMeaning}
-              onClick={() => setIsEnglishMeaning((current) => !current)}
+              onClick={handleMeaningToggleClick}
+              onPointerDown={(event) => event.stopPropagation()}
               type="button"
             >
               뜻 전환
