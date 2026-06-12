@@ -16,6 +16,10 @@
   letter-spacing: -0.04em;
 }
 
+.pointText{
+  color: #059669;
+}
+
 .menuContainer {
   position: relative;
   flex: 0 0 auto;

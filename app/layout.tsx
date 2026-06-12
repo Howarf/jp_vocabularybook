@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "JP Vocabulary Book",
+  title: "My 탄고",
   description: "A Next.js vocabulary book starter using TypeScript and CSS Modules.",
 };
 

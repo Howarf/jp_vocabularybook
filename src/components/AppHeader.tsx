@@ -5,7 +5,7 @@ import styles from "./AppHeader.module.css";
 export default function AppHeader() {
   return (
     <header className={styles.header}>
-      <h1 className={styles.logo}>JLPT단어장</h1>
+      <h1 className={styles.logo}><span className={styles.pointText}>My</span> 탄고</h1>
       <HeaderMenuButton />
     </header>
   );
