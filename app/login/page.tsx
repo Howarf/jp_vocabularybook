@@ -61,7 +61,8 @@ export default function LoginPage() {
             로그인
           </h1>
           <p className={sharedStyles.authDescription}>
-            가입한 아이디와 비밀번호로 일본어 단어장을 시작하세요.
+            가입한 아이디와 비밀번호로 My 탄고를 시작하세요.<br/>
+            개인 환경에서 로그인 하는걸 권장합니다.
           </p>
 
           <form className={sharedStyles.authForm} onSubmit={handleSubmit}>

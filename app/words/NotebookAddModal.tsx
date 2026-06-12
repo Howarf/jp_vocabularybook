@@ -9,11 +9,13 @@ import styles from "./words.module.css";
 type NotebookAddModalProps = {
   selectedWord: SelectedWord;
   vocabularyBooks: VocabularyBook[];
+  newVocabularyBookDescription: string;
   newVocabularyBookTitle: string;
   isVocabularyBookLoading: boolean;
   isVocabularyBookSubmitting: boolean;
   feedbackMessage: string;
   onClose: () => void;
+  onNewVocabularyBookDescriptionChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onNewVocabularyBookTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onCreateVocabularyBook: () => void;
   onSelectVocabularyBook: (vocabularyBook: VocabularyBook) => void;
@@ -23,11 +25,13 @@ type NotebookAddModalProps = {
 export default function NotebookAddModal({
   selectedWord,
   vocabularyBooks,
+  newVocabularyBookDescription,
   newVocabularyBookTitle,
   isVocabularyBookLoading,
   isVocabularyBookSubmitting,
   feedbackMessage,
   onClose,
+  onNewVocabularyBookDescriptionChange,
   onNewVocabularyBookTitleChange,
   onCreateVocabularyBook,
   onSelectVocabularyBook,
@@ -84,6 +88,15 @@ export default function NotebookAddModal({
               {isVocabularyBookSubmitting ? "처리 중..." : "새 단어장 만들기"}
             </button>
           </div>
+          <input
+            className={styles.createNotebookInput}
+            id="new-notebook-description"
+            maxLength={25}
+            onChange={onNewVocabularyBookDescriptionChange}
+            placeholder="단어장 설명을 입력해 주세요"
+            type="text"
+            value={newVocabularyBookDescription}
+          />
         </div>
 
         {isVocabularyBookLoading ? (

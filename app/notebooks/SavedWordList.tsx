@@ -10,11 +10,13 @@ type SavedWordListProps = {
   dragOffsetByWordId: Record<string, number>;
   draggingWordId: string | null;
   isRemovingWordId: string | null;
+  isDeletingVocabularyBook: boolean;
   isWordsLoading: boolean;
   selectedVocabularyBook: VocabularyBookWithCount | null;
   updatingLearningStateWordId: string | null;
   vocabularyBookWords: VocabularyBookWordWithWord[];
   onPointerDown: (vocabularyBookWordId: string, event: PointerEvent<HTMLDivElement>) => void;
+  onDeleteVocabularyBook: () => void;
   onPointerEnd: (vocabularyBookWord: VocabularyBookWordWithWord, event: PointerEvent<HTMLDivElement>) => void;
   onPointerMove: (vocabularyBookWordId: string, event: PointerEvent<HTMLDivElement>) => void;
   onRemoveWord: (vocabularyBookWordId: string) => void;
@@ -26,11 +28,13 @@ export default function SavedWordList({
   dragOffsetByWordId,
   draggingWordId,
   isRemovingWordId,
+  isDeletingVocabularyBook,
   isWordsLoading,
   selectedVocabularyBook,
   updatingLearningStateWordId,
   vocabularyBookWords,
   onPointerDown,
+  onDeleteVocabularyBook,
   onPointerEnd,
   onPointerMove,
   onRemoveWord,
@@ -46,7 +50,17 @@ export default function SavedWordList({
           </h2>
         </div>
         {selectedVocabularyBook ? (
-          <span className={sharedStyles.countBadge}>{selectedVocabularyBook.wordCount}개</span>
+          <div className={styles.selectedHeaderActions}>
+            <span className={sharedStyles.countBadge}>{selectedVocabularyBook.wordCount}개</span>
+            <button
+              className={styles.deleteVocabularyBookButton}
+              disabled={isDeletingVocabularyBook}
+              onClick={onDeleteVocabularyBook}
+              type="button"
+            >
+              {isDeletingVocabularyBook ? "삭제 중" : "삭제"}
+            </button>
+          </div>
         ) : null}
       </div>
 

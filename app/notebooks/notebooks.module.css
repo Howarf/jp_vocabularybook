@@ -120,12 +120,6 @@
   font-weight: 900;
 }
 
-.createRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.65rem;
-}
-
 .createInput {
   min-width: 0;
   border: 1px solid #d1d5db;
@@ -209,6 +203,31 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.selectedHeaderActions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.deleteVocabularyBookButton {
+  border: 1px solid #fecaca;
+  border-radius: 999rem;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  font-weight: 900;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.deleteVocabularyBookButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .wordCard {

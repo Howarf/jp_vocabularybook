@@ -24,17 +24,6 @@
   box-shadow: none;
 }
 
-.linkButton {
-  display: inline-flex;
-  margin-top: 28px;
-  border-radius: 14px;
-  background: var(--color-primary);
-  color: #ffffff;
-  font-weight: 800;
-  padding: 14px 18px;
-  text-decoration: none;
-}
-
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -247,30 +236,6 @@
 .meaningToggle:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-}
-
-.addButton {
-  justify-self: end;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  border: 0;
-  border-radius: 999px;
-  background: #111827;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 900;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition:
-    background 160ms ease,
-    transform 160ms ease;
-}
-
-.addButton:hover {
-  background: var(--color-primary);
-  transform: translateY(-1px);
 }
 
 .cardContent {
@@ -571,10 +536,6 @@
     flex-shrink: 0;
     min-width: max-content;
     white-space: nowrap;
-  }
-
-  .addButton {
-    justify-self: stretch;
   }
 
   .modalCard {

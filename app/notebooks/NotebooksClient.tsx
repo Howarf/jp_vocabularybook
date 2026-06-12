@@ -37,11 +37,13 @@ function isInteractiveElement(eventTarget: EventTarget | null) {
 export default function NotebooksClient({ initialVocabularyBookId = null }: NotebooksClientProps) {
   const [vocabularyBookWords, setVocabularyBookWords] = useState<VocabularyBookWordWithWord[]>([]);
   const [isWordsLoading, setIsWordsLoading] = useState(false);
+  const [isDeletingVocabularyBook, setIsDeletingVocabularyBook] = useState(false);
   const [isRemovingWordId, setIsRemovingWordId] = useState<string | null>(null);
   const [updatingLearningStateWordId, setUpdatingLearningStateWordId] = useState<string | null>(null);
   const [dragOffsetByWordId, setDragOffsetByWordId] = useState<Record<string, number>>({});
   const [draggingWordId, setDraggingWordId] = useState<string | null>(null);
   const [manuallySelectedVocabularyBookId, setManuallySelectedVocabularyBookId] = useState<string | null>(null);
+  const [newVocabularyBookDescription, setNewVocabularyBookDescription] = useState("");
   const [newVocabularyBookTitle, setNewVocabularyBookTitle] = useState("");
   const [isCreatingVocabularyBook, setIsCreatingVocabularyBook] = useState(false);
   const [isCreateVocabularyBookModalOpen, setIsCreateVocabularyBookModalOpen] = useState(false);
@@ -53,6 +55,7 @@ export default function NotebooksClient({ initialVocabularyBookId = null }: Note
   const vocabularyBookStoreErrorMessage = useVocabularyBookStore((state) => state.errorMessage);
   const loadVocabularyBooksForUser = useVocabularyBookStore((state) => state.loadVocabularyBooksForUser);
   const addVocabularyBook = useVocabularyBookStore((state) => state.addVocabularyBook);
+  const removeVocabularyBook = useVocabularyBookStore((state) => state.removeVocabularyBook);
   const updateVocabularyBookAfterWordRemoval = useVocabularyBookStore((state) => state.updateVocabularyBookAfterWordRemoval);
   const updateVocabularyBookLearningStatus = useVocabularyBookStore((state) => state.updateVocabularyBookLearningStatus);
   const pointerStartXRef = useRef<number | null>(null);
@@ -194,6 +197,10 @@ export default function NotebooksClient({ initialVocabularyBookId = null }: Note
 
   // 사용자가 선택한 단어장 id를 현재 선택 상태로 변경합니다.
   const handleSelectVocabularyBook = (vocabularyBookId: string) => {
+    if (selectedVocabularyBookId === vocabularyBookId) {
+      return;
+    }
+
     setManuallySelectedVocabularyBookId(vocabularyBookId);
     setVocabularyBookWords([]);
     setFeedbackMessage("");
@@ -201,6 +208,7 @@ export default function NotebooksClient({ initialVocabularyBookId = null }: Note
 
   // 새 단어장 생성 모달을 열고 이전 입력값을 초기화합니다.
   const handleOpenCreateVocabularyBookModal = () => {
+    setNewVocabularyBookDescription("");
     setNewVocabularyBookTitle("");
     setFeedbackMessage("");
     setIsCreateVocabularyBookModalOpen(true);
@@ -212,12 +220,14 @@ export default function NotebooksClient({ initialVocabularyBookId = null }: Note
       return;
     }
 
+    setNewVocabularyBookDescription("");
     setNewVocabularyBookTitle("");
     setIsCreateVocabularyBookModalOpen(false);
   };
 
   // 입력한 제목으로 새 단어장을 만들고 목록을 다시 조회합니다.
   const handleCreateVocabularyBook = async () => {
+    const trimmedDescription = newVocabularyBookDescription.trim();
     const trimmedTitle = newVocabularyBookTitle.trim();
 
     if (!trimmedTitle) {
@@ -234,7 +244,11 @@ export default function NotebooksClient({ initialVocabularyBookId = null }: Note
       return;
     }
 
-    const { data, error } = await createVocabularyBookForUser(trimmedTitle, currentUserId);
+    const { data, error } = await createVocabularyBookForUser(
+      trimmedTitle,
+      trimmedDescription || null,
+      currentUserId,
+    );
 
     if (error) {
       setFeedbackMessage(`단어장을 만들지 못했습니다: ${error.message}`);
@@ -242,6 +256,7 @@ export default function NotebooksClient({ initialVocabularyBookId = null }: Note
       return;
     }
 
+    setNewVocabularyBookDescription("");
     setNewVocabularyBookTitle("");
     setManuallySelectedVocabularyBookId(data.id);
     addVocabularyBook(data);
@@ -253,6 +268,55 @@ export default function NotebooksClient({ initialVocabularyBookId = null }: Note
   // 새 단어장 제목 입력값을 상태에 반영합니다.
   const handleNewVocabularyBookTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setNewVocabularyBookTitle(event.target.value);
+  };
+
+  // 새 단어장 설명 입력값을 상태에 반영합니다.
+  const handleNewVocabularyBookDescriptionChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setNewVocabularyBookDescription(event.target.value);
+  };
+
+  // 선택한 단어장과 연결된 단어 데이터를 삭제합니다.
+  const handleDeleteSelectedVocabularyBook = async () => {
+    if (!selectedVocabularyBook) {
+      return;
+    }
+
+    const selectedVocabularyBookIndex = vocabularyBooks.findIndex(
+      (vocabularyBook) => vocabularyBook.id === selectedVocabularyBook.id,
+    );
+    const nextSelectedVocabularyBook = selectedVocabularyBookIndex === -1
+      ? null
+      : vocabularyBooks[selectedVocabularyBookIndex + 1] ??
+        vocabularyBooks[selectedVocabularyBookIndex - 1] ??
+        null;
+    const shouldDeleteVocabularyBook = window.confirm(`'${selectedVocabularyBook.title}' 단어장을 삭제할까요?`);
+
+    if (!shouldDeleteVocabularyBook) {
+      return;
+    }
+
+    setIsDeletingVocabularyBook(true);
+    setFeedbackMessage("");
+
+    const { error: vocabularyBookDeleteError } = await supabase
+      .from("vocabulary_books")
+      .delete()
+      .eq("id", selectedVocabularyBook.id);
+
+    if (vocabularyBookDeleteError) {
+      setFeedbackMessage(`단어장을 삭제하지 못했습니다. ${vocabularyBookDeleteError.message}`);
+      setIsDeletingVocabularyBook(false);
+      return;
+    }
+
+    removeVocabularyBook(selectedVocabularyBook.id);
+    setManuallySelectedVocabularyBookId(nextSelectedVocabularyBook?.id ?? null);
+    setVocabularyBookWords([]);
+    setDragOffsetByWordId({});
+    setDraggingWordId(null);
+    setIsWordsLoading(Boolean(nextSelectedVocabularyBook));
+    setFeedbackMessage(`'${selectedVocabularyBook.title}' 단어장을 삭제했습니다.`);
+    setIsDeletingVocabularyBook(false);
   };
 
   // 선택한 단어장에서 특정 단어 연결 데이터를 삭제합니다.
@@ -431,8 +495,10 @@ export default function NotebooksClient({ initialVocabularyBookId = null }: Note
           <SavedWordList
             dragOffsetByWordId={dragOffsetByWordId}
             draggingWordId={draggingWordId}
+            isDeletingVocabularyBook={isDeletingVocabularyBook}
             isRemovingWordId={isRemovingWordId}
             isWordsLoading={isWordsLoading}
+            onDeleteVocabularyBook={handleDeleteSelectedVocabularyBook}
             onPointerDown={handleWordCardPointerDown}
             onPointerEnd={handleWordCardPointerEnd}
             onPointerMove={handleWordCardPointerMove}
@@ -448,9 +514,11 @@ export default function NotebooksClient({ initialVocabularyBookId = null }: Note
       {isCreateVocabularyBookModalOpen ? (
         <CreateNotebookModal
           isCreatingVocabularyBook={isCreatingVocabularyBook}
+          newVocabularyBookDescription={newVocabularyBookDescription}
           newVocabularyBookTitle={newVocabularyBookTitle}
           onClose={handleCloseCreateVocabularyBookModal}
           onCreateVocabularyBook={handleCreateVocabularyBook}
+          onNewVocabularyBookDescriptionChange={handleNewVocabularyBookDescriptionChange}
           onNewVocabularyBookTitleChange={handleNewVocabularyBookTitleChange}
         />
       ) : null}

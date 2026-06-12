@@ -6,18 +6,22 @@ import styles from "./notebooks.module.css";
 
 type CreateNotebookModalProps = {
   isCreatingVocabularyBook: boolean;
+  newVocabularyBookDescription: string;
   newVocabularyBookTitle: string;
   onClose: () => void;
   onCreateVocabularyBook: () => void;
+  onNewVocabularyBookDescriptionChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onNewVocabularyBookTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
 // 새 단어장 이름을 입력하고 생성을 요청하는 모달을 렌더링합니다.
 export default function CreateNotebookModal({
   isCreatingVocabularyBook,
+  newVocabularyBookDescription,
   newVocabularyBookTitle,
   onClose,
   onCreateVocabularyBook,
+  onNewVocabularyBookDescriptionChange,
   onNewVocabularyBookTitleChange,
 }: CreateNotebookModalProps) {
   return (
@@ -56,6 +60,18 @@ export default function CreateNotebookModal({
             placeholder="예: 매일 복습 단어장"
             type="text"
             value={newVocabularyBookTitle}
+          />
+          <label className={styles.createLabel} htmlFor="new-vocabulary-book-description">
+            단어장 설명
+          </label>
+          <input
+            className={styles.createInput}
+            id="new-vocabulary-book-description"
+            onChange={onNewVocabularyBookDescriptionChange}
+            placeholder="25자 이내로 단어장의 학습 목적을 적어주세요"
+            type="text"
+            maxLength={25}
+            value={newVocabularyBookDescription}
           />
           <div className={styles.modalActionRow}>
             <button

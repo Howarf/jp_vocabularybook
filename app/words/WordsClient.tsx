@@ -30,6 +30,7 @@ export default function WordsClient() {
   const [hasMore, setHasMore] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedWord, setSelectedWord] = useState<SelectedWord | null>(null);
+  const [newVocabularyBookDescription, setNewVocabularyBookDescription] = useState("");
   const [newVocabularyBookTitle, setNewVocabularyBookTitle] = useState("");
   const [isVocabularyBookSubmitting, setIsVocabularyBookSubmitting] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
@@ -201,6 +202,11 @@ export default function WordsClient() {
     setNewVocabularyBookTitle(event.target.value);
   };
 
+  // 입력한 새 단어장 설명을 생성 폼 상태에 반영합니다.
+  const handleNewVocabularyBookDescriptionChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setNewVocabularyBookDescription(event.target.value);
+  };
+
   // 단어 id가 없는 항목을 단어장에 추가하지 못한다는 메시지를 표시합니다.
   const handleInvalidWordId = () => {
     setFeedbackMessage("이 단어에는 저장에 필요한 id가 없습니다.");
@@ -237,6 +243,7 @@ export default function WordsClient() {
   const openNotebookModal = (word: SelectedWord) => {
     setSelectedWord(word);
     setFeedbackMessage("");
+    setNewVocabularyBookDescription("");
     setNewVocabularyBookTitle("");
 
     if (!currentUserId) {
@@ -250,11 +257,13 @@ export default function WordsClient() {
   // 단어장 선택 모달을 닫고 입력 중인 단어장 이름을 초기화합니다.
   const closeNotebookModal = () => {
     setSelectedWord(null);
+    setNewVocabularyBookDescription("");
     setNewVocabularyBookTitle("");
   };
 
   // 입력한 제목으로 사용자 단어장을 Supabase에 생성합니다.
   const handleCreateVocabularyBook = async () => {
+    const trimmedDescription = newVocabularyBookDescription.trim();
     const trimmedTitle = newVocabularyBookTitle.trim();
 
     if (!trimmedTitle) {
@@ -270,7 +279,11 @@ export default function WordsClient() {
       return;
     }
 
-    const { data, error } = await createVocabularyBookForUser(trimmedTitle, currentUserId);
+    const { data, error } = await createVocabularyBookForUser(
+      trimmedTitle,
+      trimmedDescription || null,
+      currentUserId,
+    );
 
     if (error) {
       setIsVocabularyBookSubmitting(false);
@@ -279,6 +292,7 @@ export default function WordsClient() {
 
     addVocabularyBook(data);
     setFeedbackMessage(`'${trimmedTitle}' 단어장을 만들었습니다.`);
+    setNewVocabularyBookDescription("");
     setNewVocabularyBookTitle("");
     setIsVocabularyBookSubmitting(false);
   };
@@ -334,6 +348,7 @@ export default function WordsClient() {
     }
 
     setSelectedWord(null);
+    setNewVocabularyBookDescription("");
     setNewVocabularyBookTitle("");
     setToastMessage("추가되었습니다.");
     setIsVocabularyBookSubmitting(false);
@@ -377,9 +392,11 @@ export default function WordsClient() {
           feedbackMessage={feedbackMessage || vocabularyBookStoreErrorMessage}
           isVocabularyBookLoading={isVocabularyBooksLoading}
           isVocabularyBookSubmitting={isVocabularyBookSubmitting}
+          newVocabularyBookDescription={newVocabularyBookDescription}
           newVocabularyBookTitle={newVocabularyBookTitle}
           onClose={closeNotebookModal}
           onCreateVocabularyBook={handleCreateVocabularyBook}
+          onNewVocabularyBookDescriptionChange={handleNewVocabularyBookDescriptionChange}
           onNewVocabularyBookTitleChange={handleNewVocabularyBookTitleChange}
           onSelectVocabularyBook={handleSelectVocabularyBook}
           selectedWord={selectedWord}

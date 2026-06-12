@@ -27,30 +27,20 @@
   width: 100%;
 }
 
-.longContentPanel {
-  align-self: stretch;
-  width: 100%;
-}
-
 .todayWordPanel,
-.summaryPanel,
 .panel {
   width: 100%;
   padding: 1rem;
 }
 
-.todayWordPanel,
-.summaryPanel {
+.todayWordPanel {
   display: grid;
   gap: 0.75rem;
 }
 
 .todayWordHeader,
-.summaryHeader,
 .listHeader,
-.cardTitleRow,
-.progressMetaRow,
-.learningStateHeader {
+.cardTitleRow {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -275,63 +265,7 @@
   padding: 0.65rem 0.95rem;
 }
 
-.summaryMetricGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
-}
-
-.metricCard {
-  display: grid;
-  gap: 0.35rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
-  background: #f8fafc;
-  padding: 0.85rem;
-}
-
-.metricCard strong {
-  color: #111827;
-  font-size: clamp(1.45rem, 5vw, 2rem);
-  font-weight: 900;
-  letter-spacing: -0.04em;
-}
-
-.metricCard span {
-  color: #475569;
-  font-size: 0.82rem;
-  font-weight: 900;
-}
-
-.list,
-.progressList {
-  gap: 0.6rem;
-  margin: 0.75rem 0 0;
-}
-
-.card,
-.progressCard {
-  min-width: 0;
-}
-
-.cardButton,
-.progressCard {
-  width: 100%;
-  gap: 0.45rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
-  background: #ffffff;
-  padding: 0.85rem;
-  text-align: left;
-  text-decoration: none;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    transform 160ms ease;
-}
-
-.cardTitleRow strong,
-.progressCard strong {
+.cardTitleRow strong {
   min-width: 0;
   color: #111827;
   font-size: 1rem;
@@ -344,27 +278,6 @@
   color: var(--color-primary);
   font-weight: 900;
   white-space: nowrap;
-}
-
-.cardButton span,
-.progressCard span {
-  color: #64748b;
-  line-height: 1.6;
-}
-
-.cardButton em {
-  justify-self: start;
-  border-radius: 999rem;
-  background: var(--color-primary-soft);
-  color: var(--color-primary-text);
-  font-size: 0.78rem;
-  font-style: normal;
-  font-weight: 900;
-  padding: 0.35rem 0.6rem;
-}
-
-.progressMetaRow {
-  margin-top: 0.35rem;
 }
 
 .progressTrack {
@@ -562,40 +475,6 @@
   line-height: 1.55;
 }
 
-.retryWrongQuizButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  justify-self: start;
-  min-height: 2.35rem;
-  border: 0;
-  border-radius: 999rem;
-  background: var(--color-primary);
-  color: #ffffff;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 900;
-  padding: 0.55rem 0.8rem;
-  text-decoration: none;
-  transition:
-    background 160ms ease,
-    transform 160ms ease;
-}
-
-.retryWrongQuizButton:hover,
-.retryWrongQuizButton:focus-visible {
-  background: var(--color-primary-hover);
-  outline: none;
-  transform: translateY(-0.06rem);
-}
-
-.retryWrongQuizButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-  transform: none;
-}
-
 .quizReviewModalBackdrop {
   padding: 1rem;
 }
@@ -674,14 +553,9 @@
 
 @media (max-width: 36rem) {
   .todayWordPanel,
-  .summaryPanel,
   .panel {
     border-radius: 1rem;
     padding: 1rem;
-  }
-
-  .summaryMetricGrid {
-    grid-template-columns: 1fr;
   }
 
   .quizInsightGrid {

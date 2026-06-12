@@ -5,6 +5,7 @@ import type {
   VocabularyBookWithCount,
   VocabularyBookWithLearningRows,
 } from "@/src/types/vocabulary";
+import { calculateLearningProgressPercentage } from "@/src/utils/learningProgress";
 
 type VocabularyBookState = {
   vocabularyBooks: VocabularyBookWithCount[];
@@ -16,6 +17,7 @@ type VocabularyBookState = {
 type VocabularyBookActions = {
   loadVocabularyBooksForUser: (userId: string, shouldForceReload?: boolean) => Promise<void>;
   addVocabularyBook: (vocabularyBook: VocabularyBook) => void;
+  removeVocabularyBook: (vocabularyBookId: string) => void;
   updateVocabularyBookAfterWordRemoval: (vocabularyBookId: string, wasLearned: boolean) => void;
   updateVocabularyBookLearningStatus: (vocabularyBookId: string, wasMemorized: boolean, nextStatus: boolean) => void;
   resetVocabularyBookState: () => void;
@@ -27,15 +29,6 @@ const initialVocabularyBookState: VocabularyBookState = {
   isVocabularyBooksLoading: false,
   errorMessage: "",
 };
-
-// 단어장 단어 수와 학습 완료 단어 수로 학습 진행률을 계산합니다.
-function calculateLearningProgressPercentage(wordCount: number, learnedWordCount: number) {
-  if (wordCount === 0) {
-    return 0;
-  }
-
-  return Math.round((learnedWordCount / wordCount) * 100);
-}
 
 // Supabase 단어장 행과 연결 행으로 화면에서 사용할 단어장 요약 정보를 만듭니다.
 function createVocabularyBookWithCount(vocabularyBook: VocabularyBookWithLearningRows): VocabularyBookWithCount {
@@ -113,6 +106,14 @@ export const useVocabularyBookStore = create<VocabularyBookState & VocabularyBoo
   addVocabularyBook: (vocabularyBook) => {
     set((currentState) => ({
       vocabularyBooks: [...currentState.vocabularyBooks, createEmptyVocabularyBookWithCount(vocabularyBook)],
+    }));
+  },
+  // 삭제된 단어장을 전역 단어장 목록에서 제거합니다.
+  removeVocabularyBook: (vocabularyBookId) => {
+    set((currentState) => ({
+      vocabularyBooks: currentState.vocabularyBooks.filter(
+        (vocabularyBook) => vocabularyBook.id !== vocabularyBookId,
+      ),
     }));
   },
   // 단어 삭제 후 선택한 단어장의 단어 수와 학습 진행률을 갱신합니다.

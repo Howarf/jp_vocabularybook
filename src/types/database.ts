@@ -1,11 +1,3 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
-
 export type Database = {
   public: {
     Tables: {
@@ -59,24 +51,10 @@ export type Database = {
   };
 };
 
-export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
-export type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
-export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
-export type JpPhraseRow = Database["public"]["Tables"]["jp_phrase"]["Row"];
-export type JpPhraseInsert = Database["public"]["Tables"]["jp_phrase"]["Insert"];
-export type JpPhraseUpdate = Database["public"]["Tables"]["jp_phrase"]["Update"];
 export type WordRow = Database["public"]["Tables"]["words"]["Row"];
-export type WordInsert = Database["public"]["Tables"]["words"]["Insert"];
-export type WordUpdate = Database["public"]["Tables"]["words"]["Update"];
 export type VocabularyBookRow = Database["public"]["Tables"]["vocabulary_books"]["Row"];
-export type VocabularyBookInsert = Database["public"]["Tables"]["vocabulary_books"]["Insert"];
-export type VocabularyBookUpdate = Database["public"]["Tables"]["vocabulary_books"]["Update"];
 export type VocabularyBookWordRow = Database["public"]["Tables"]["vocabulary_book_words"]["Row"];
-export type VocabularyBookWordInsert = Database["public"]["Tables"]["vocabulary_book_words"]["Insert"];
-export type VocabularyBookWordUpdate = Database["public"]["Tables"]["vocabulary_book_words"]["Update"];
 export type QuizResultRow = Database["public"]["Tables"]["quiz_results"]["Row"];
-export type QuizResultInsert = Database["public"]["Tables"]["quiz_results"]["Insert"];
-export type QuizResultUpdate = Database["public"]["Tables"]["quiz_results"]["Update"];
 
 export type VocabularyBookWithCount = VocabularyBookRow & { wordCount: number; learnedWordCount: number; learningProgressPercentage: number };
 export type VocabularyBookWithLearningRows = VocabularyBookRow & { vocabulary_book_words?: Pick<VocabularyBookWordRow, "status">[] | null };

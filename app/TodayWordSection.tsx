@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/src/lib/supabaseClient";
+import { useVocabularyBookStore } from "@/src/stores/useVocabularyBookStore";
 import type { WordRow } from "@/src/types/vocabulary";
 import {
   normalizeJoinedWord,
@@ -34,10 +35,12 @@ type TodayWordCard = {
 const fallbackTagValues = ["JLPT_N5", "JLPT_N4", "JLPT_N3"];
 const todayWordLimit = 8;
 
+// 전달받은 항목 배열을 무작위 순서로 섞습니다.
 function shuffleWords<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
+// 전체 단어 행을 오늘의 단어 카드 데이터로 변환합니다.
 function createFallbackCard(word: WordRow): TodayWordCard {
   return {
     id: `fallback-${word.id}`,
@@ -48,6 +51,7 @@ function createFallbackCard(word: WordRow): TodayWordCard {
   };
 }
 
+// 저장된 단어 연결 행을 오늘의 단어 카드 데이터로 변환합니다.
 function createSavedWordCard(savedWord: SavedWordRecommendation): TodayWordCard | null {
   const word = normalizeJoinedWord(savedWord.words);
 
@@ -64,6 +68,7 @@ function createSavedWordCard(savedWord: SavedWordRecommendation): TodayWordCard 
   };
 }
 
+// 메인 페이지에서 오늘 추천할 단어 카드 묶음을 보여줍니다.
 export default function TodayWordSection() {
   const [todayWords, setTodayWords] = useState<TodayWordCard[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -72,9 +77,12 @@ export default function TodayWordSection() {
   const [hasVocabularyBooks, setHasVocabularyBooks] = useState(false);
   const [isCardExiting, setIsCardExiting] = useState(false);
   const [isResetPromptVisible, setIsResetPromptVisible] = useState(false);
+  const vocabularyBooks = useVocabularyBookStore((state) => state.vocabularyBooks);
+  const loadedUserId = useVocabularyBookStore((state) => state.loadedUserId);
   const cardExitTimerRef = useRef<number | null>(null);
   const activeWord = todayWords[activeIndex] ?? null;
 
+  // 단어장이 없거나 추천 단어가 없을 때 사용할 기본 단어를 불러옵니다.
   const loadFallbackWords = useCallback(async () => {
     const { data, error } = await supabase
       .from("words")
@@ -94,37 +102,28 @@ export default function TodayWordSection() {
   useEffect(() => {
     let isMounted = true;
 
+    // 현재 사용자의 단어장 여부에 따라 오늘의 단어 후보를 불러옵니다.
     const loadTodayWords = async () => {
+      if (!loadedUserId) {
+        return;
+      }
+
       setIsLoading(true);
       setErrorMessage("");
 
       try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError) {
-          throw userError;
-        }
-
-        const { count: vocabularyBookCount, error: vocabularyBookError } = await supabase
-          .from("vocabulary_books")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user?.id ?? "");
-
-        if (vocabularyBookError) {
-          throw vocabularyBookError;
-        }
-
+        let nextHasVocabularyBooks = false;
         let nextWords: TodayWordCard[] = [];
+        const userVocabularyBookIds = vocabularyBooks.map((vocabularyBook) => vocabularyBook.id);
+        nextHasVocabularyBooks = userVocabularyBookIds.length > 0;
 
-        if ((vocabularyBookCount ?? 0) > 0) {
-          setHasVocabularyBooks(true);
-
+        if (!nextHasVocabularyBooks) {
+          nextWords = await loadFallbackWords();
+        } else {
           const { data: savedWords, error: savedWordsError } = await supabase
             .from("vocabulary_book_words")
             .select("id,status,wrong_count,created_at,words(id,expression,reading,meaning_ko,meaning_en,tag)")
+            .in("book_id", userVocabularyBookIds)
             .order("status", { ascending: true })
             .order("wrong_count", { ascending: false })
             .order("created_at", { ascending: false })
@@ -137,18 +136,17 @@ export default function TodayWordSection() {
           nextWords = ((savedWords ?? []) as SavedWordRecommendation[])
             .map(createSavedWordCard)
             .filter((word): word is TodayWordCard => Boolean(word));
-        } else {
-          setHasVocabularyBooks(false);
-        }
 
-        if (nextWords.length === 0) {
-          nextWords = await loadFallbackWords();
+          if (nextWords.length === 0) {
+            nextWords = await loadFallbackWords();
+          }
         }
 
         if (!isMounted) {
           return;
         }
 
+        setHasVocabularyBooks(nextHasVocabularyBooks);
         setTodayWords(nextWords);
         setActiveIndex(0);
         setIsResetPromptVisible(false);
@@ -175,7 +173,7 @@ export default function TodayWordSection() {
     return () => {
       isMounted = false;
     };
-  }, [loadFallbackWords]);
+  }, [loadFallbackWords, loadedUserId, vocabularyBooks]);
 
   useEffect(() => () => {
     if (cardExitTimerRef.current) {
