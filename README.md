@@ -29,9 +29,9 @@
 <p>
   <p>왼쪽에서부터 메인페이지, 단어목록 페이지, 단어장 페이지이며 모바일 기준으로 디자인한 반응형이다.</p>
   <div>
-    <img src="./public/screenshots/myTango_m_main.jpg" alt="모바일 뷰" width=333 />
-    <img src="./public/screenshots/myTango_m_words.jpg" alt="단어목록" width=333 />
-    <img src="./public/screenshots/myTango_m_note.jpg" alt="단어장" width=333 />
+    <img src="./public/screenshots/myTango_m_main.jpg" alt="모바일 뷰" width=33% />
+    <img src="./public/screenshots/myTango_m_words.jpg" alt="단어목록" width=33% />
+    <img src="./public/screenshots/myTango_m_note.jpg" alt="단어장" width=33% />
   </div>
 </p>
 
