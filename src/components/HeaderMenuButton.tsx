@@ -7,7 +7,7 @@ import { supabase } from "@/src/lib/supabaseClient";
 import { useVocabularyBookStore } from "@/src/stores/useVocabularyBookStore";
 import styles from "./AppHeader.module.css";
 
-// 헤더의 햄버거 버튼과 메뉴 패널의 클라이언트 상호작용을 렌더링합니다.
+// 헤더의 햄버거 버튼과 메뉴 패널을 렌더링합니다.
 export default function HeaderMenuButton() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,7 +20,6 @@ export default function HeaderMenuButton() {
       return undefined;
     }
 
-    // 메뉴 영역 바깥 포인터 입력을 감지해 열린 햄버거 메뉴를 닫습니다.
     const handleDocumentPointerDown = (event: globalThis.PointerEvent) => {
       if (menuContainerRef.current?.contains(event.target as Node)) {
         return;
@@ -59,11 +58,11 @@ export default function HeaderMenuButton() {
   return (
     <div className={styles.menuContainer} ref={menuContainerRef}>
       <button
+        aria-controls="main-mobile-menu"
+        aria-expanded={isMenuOpen}
+        aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
         className={styles.menuButton}
         type="button"
-        aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
-        aria-expanded={isMenuOpen}
-        aria-controls="main-mobile-menu"
         onClick={handleToggleMenu}
       >
         <span />
@@ -72,22 +71,21 @@ export default function HeaderMenuButton() {
       </button>
 
       <nav
-        id="main-mobile-menu"
-        className={`${styles.panel} ${isMenuOpen ? styles.openPanel : ""}`}
         aria-label="메인 메뉴"
+        className={`${styles.panel} ${isMenuOpen ? styles.openPanel : ""}`}
+        id="main-mobile-menu"
       >
         <Link className={styles.menuLink} href="/" onClick={handleCloseMenu}>
           메인
         </Link>
         <Link className={styles.menuLink} href="/words" onClick={handleCloseMenu}>
-          JLPT단어 보기
+          JLPT 단어 보기
         </Link>
-        <Link
-          className={styles.menuLink}
-          href="/notebooks"
-          onClick={handleCloseMenu}
-        >
+        <Link className={styles.menuLink} href="/notebooks" onClick={handleCloseMenu}>
           내 단어장
+        </Link>
+        <Link className={styles.menuLink} href="/quiz" onClick={handleCloseMenu}>
+          퀴즈
         </Link>
         <Link className={styles.menuLink} href="/hiragana" onClick={handleCloseMenu}>
           히라가나
@@ -97,9 +95,9 @@ export default function HeaderMenuButton() {
         </Link>
         <button
           className={styles.logoutButton}
+          disabled={isLoggingOut}
           type="button"
           onClick={handleLogout}
-          disabled={isLoggingOut}
         >
           {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
         </button>

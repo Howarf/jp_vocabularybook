@@ -4,5 +4,6 @@ export type {
   VocabularyBookWithCount,
   VocabularyBookWithLearningRows,
   VocabularyBookWordWithWord,
+  WordPartOfSpeech,
   WordRow,
 } from "./database";

@@ -195,7 +195,7 @@ export default function QuizInsightSection() {
               </button>
               <Link
                 className={styles.quizReviewConfirmLink}
-                href={`/notebooks?bookId=${recentQuizResult.vocabulary_book_id}`}
+                href={`/quiz?bookId=${recentQuizResult.vocabulary_book_id}`}
               >
                 다시 풀기
               </Link>

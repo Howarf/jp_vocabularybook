@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# DBtable&doc
+JUNIOR_NEXT_ZUSTAND_GUIDE.md
+/supabase

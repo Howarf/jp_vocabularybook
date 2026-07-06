@@ -38,19 +38,57 @@ export type Database = {
         ];
       };
       words: {
-        Row: { id: number; expression: string; reading: string | null; meaning_ko: string; meaning_en: string | null; tag: string | null };
-        Insert: { id?: never; expression: string; reading?: string | null; meaning_ko: string; meaning_en?: string | null; tag?: string | null };
-        Update: { id?: never; expression?: string; reading?: string | null; meaning_ko?: string; meaning_en?: string | null; tag?: string | null };
+        Row: {
+          id: number;
+          expression: string;
+          reading: string | null;
+          meaning_ko: string;
+          meaning_en: string | null;
+          tag: string | null;
+          part_of_speech: Database["public"]["Enums"]["words_pos"] | null;
+        };
+        Insert: {
+          id?: never;
+          expression: string;
+          reading?: string | null;
+          meaning_ko: string;
+          meaning_en?: string | null;
+          tag?: string | null;
+          part_of_speech?: Database["public"]["Enums"]["words_pos"] | null;
+        };
+        Update: {
+          id?: never;
+          expression?: string;
+          reading?: string | null;
+          meaning_ko?: string;
+          meaning_en?: string | null;
+          tag?: string | null;
+          part_of_speech?: Database["public"]["Enums"]["words_pos"] | null;
+        };
         Relationships: [];
       };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
-    Enums: Record<string, never>;
+    Enums: {
+      words_pos:
+        | "noun"
+        | "verb"
+        | "i_adj"
+        | "na_adj"
+        | "adverb"
+        | "particle"
+        | "auxiliary"
+        | "interjection"
+        | "conjunction"
+        | "expression"
+        | "other";
+    };
     CompositeTypes: Record<string, never>;
   };
 };
 
+export type WordPartOfSpeech = Database["public"]["Enums"]["words_pos"];
 export type WordRow = Database["public"]["Tables"]["words"]["Row"];
 export type VocabularyBookRow = Database["public"]["Tables"]["vocabulary_books"]["Row"];
 export type VocabularyBookWordRow = Database["public"]["Tables"]["vocabulary_book_words"]["Row"];

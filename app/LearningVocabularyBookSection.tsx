@@ -77,9 +77,9 @@ export default function LearningVocabularyBookSection() {
                     />
                   </div>
                 </Link>
-                <button aria-disabled="true" className={styles.mockQuizButton} type="button">
+                <Link className={styles.mockQuizButton} href={`/quiz?bookId=${learningVocabularyBook.id}`}>
                   퀴즈
-                </button>
+                </Link>
               </div>
             </li>
           ))}

@@ -86,7 +86,7 @@ export default function TodayWordSection() {
   const loadFallbackWords = useCallback(async () => {
     const { data, error } = await supabase
       .from("words")
-      .select("id,expression,reading,meaning_ko,meaning_en,tag")
+      .select("id,expression,reading,meaning_ko,meaning_en,tag,part_of_speech")
       .in("tag", fallbackTagValues)
       .limit(80);
 
@@ -122,7 +122,7 @@ export default function TodayWordSection() {
         } else {
           const { data: savedWords, error: savedWordsError } = await supabase
             .from("vocabulary_book_words")
-            .select("id,status,wrong_count,created_at,words(id,expression,reading,meaning_ko,meaning_en,tag)")
+            .select("id,status,wrong_count,created_at,words(id,expression,reading,meaning_ko,meaning_en,tag,part_of_speech)")
             .in("book_id", userVocabularyBookIds)
             .order("status", { ascending: true })
             .order("wrong_count", { ascending: false })

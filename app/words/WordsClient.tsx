@@ -36,6 +36,7 @@ export default function WordsClient() {
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isScrollTopButtonVisible, setIsScrollTopButtonVisible] = useState(false);
   const vocabularyBooks = useVocabularyBookStore((state) => state.vocabularyBooks);
   const isVocabularyBooksLoading = useVocabularyBookStore((state) => state.isVocabularyBooksLoading);
   const vocabularyBookStoreErrorMessage = useVocabularyBookStore((state) => state.errorMessage);
@@ -187,6 +188,18 @@ export default function WordsClient() {
     return () => window.clearTimeout(toastTimer);
   }, [toastMessage]);
 
+  useEffect(() => {
+    // 현재 스크롤 위치에 따라 맨 위로 이동 버튼 표시 상태를 갱신합니다.
+    const handleWindowScroll = () => {
+      setIsScrollTopButtonVisible(window.scrollY > 360);
+    };
+
+    handleWindowScroll();
+    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, []);
+
   // 선택한 단어 필터를 변경합니다.
   const handleFilterChange = (filter: JlptFilterLabel) => {
     setSelectedFilter(filter);
@@ -210,6 +223,11 @@ export default function WordsClient() {
   // 단어 id가 없는 항목을 단어장에 추가하지 못한다는 메시지를 표시합니다.
   const handleInvalidWordId = () => {
     setFeedbackMessage("이 단어에는 저장에 필요한 id가 없습니다.");
+  };
+
+  // 단어 목록 페이지의 최상단으로 부드럽게 이동합니다.
+  const handleScrollToTop = () => {
+    window.scrollTo({ behavior: "smooth", top: 0 });
   };
 
   useEffect(() => {
@@ -402,6 +420,17 @@ export default function WordsClient() {
           selectedWord={selectedWord}
           vocabularyBooks={vocabularyBooks}
         />
+      ) : null}
+
+      {isScrollTopButtonVisible ? (
+        <button
+          aria-label="맨 위로 이동"
+          className={styles.scrollTopButton}
+          onClick={handleScrollToTop}
+          type="button"
+        >
+          ↑
+        </button>
       ) : null}
 
       <WordsToast message={toastMessage} />
