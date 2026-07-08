@@ -1,3 +1,5 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
 export type Database = {
   public: {
     Tables: {
@@ -69,7 +71,23 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_random_quiz_words: {
+        Args: {
+          requested_tag: string | null;
+          requested_count: number;
+        };
+        Returns: Database["public"]["Tables"]["words"]["Row"][];
+      };
+      save_vocabulary_book_quiz_result: {
+        Args: {
+          requested_vocabulary_book_id: string;
+          quiz_answers: Json;
+          result_apply_mode: string;
+        };
+        Returns: undefined;
+      };
+    };
     Enums: {
       words_pos:
         | "noun"

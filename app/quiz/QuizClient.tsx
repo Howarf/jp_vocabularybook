@@ -70,7 +70,7 @@ type QuizCandidate = {
 
 type SaveQuizResultOutcome = {
   errorMessage: string;
-  status: "success" | "partial" | "failed";
+  status: "success" | "failed";
 };
 
 type QuizClientProps = {
@@ -355,13 +355,10 @@ async function fetchQuizCandidates(quizSetup: QuizSetup) {
   }
 
   const databaseTag = getJlptDatabaseTag(quizSetup.level);
-  let query = supabase.from("words").select("*").limit(240);
-
-  if (databaseTag) {
-    query = query.eq("tag", databaseTag);
-  }
-
-  const { data, error } = await query;
+  const { data, error } = await supabase.rpc("get_random_quiz_words", {
+    requested_tag: databaseTag ?? null,
+    requested_count: quizSetup.questionCount,
+  });
 
   if (error) {
     return { candidates: [], errorMessage: `전체 단어를 불러오지 못했습니다. ${error.message}` };
@@ -375,16 +372,29 @@ async function fetchQuizCandidates(quizSetup: QuizSetup) {
 
 // 전체 단어 목록에서 퀴즈 선택지 후보를 불러옵니다.
 async function fetchQuizChoiceCandidates() {
-  const { data, error } = await supabase.from("words").select("*").limit(1000);
+  const wordsPerPage = 1000;
+  const choiceCandidates: QuizCandidate[] = [];
+  let firstWordIndex = 0;
 
-  if (error) {
-    return { choiceCandidates: [], errorMessage: `선택지 후보 단어를 불러오지 못했습니다. ${error.message}` };
+  while (true) {
+    const { data, error } = await supabase
+      .from("words")
+      .select("*")
+      .order("id", { ascending: true })
+      .range(firstWordIndex, firstWordIndex + wordsPerPage - 1);
+
+    if (error) {
+      return { choiceCandidates: [], errorMessage: `선택지 후보 단어를 불러오지 못했습니다. ${error.message}` };
+    }
+
+    choiceCandidates.push(...(data ?? []).map(createCandidateFromWord));
+
+    if (!data || data.length < wordsPerPage) {
+      return { choiceCandidates, errorMessage: "" };
+    }
+
+    firstWordIndex += wordsPerPage;
   }
-
-  return {
-    choiceCandidates: (data ?? []).map(createCandidateFromWord),
-    errorMessage: "",
-  };
 }
 
 // 퀴즈 후보 목록과 전체 선택지 후보에서 설정한 개수만큼 문제를 생성합니다.
@@ -408,115 +418,7 @@ function createInitialQuizSetup(initialVocabularyBookId: string | null): QuizSet
   };
 }
 
-// 정답 반영 방식에 따라 다음 학습 상태를 계산합니다.
-function getNextLearningStatus(
-  currentStatus: boolean,
-  isCorrect: boolean,
-  resultApplyMode: QuizResultApplyMode,
-) {
-  if (resultApplyMode === "markCorrectAsLearnedAndWrongAsLearning" && !isCorrect) {
-    return false;
-  }
-
-  if (
-    (resultApplyMode === "markCorrectAsLearned" ||
-      resultApplyMode === "markCorrectAsLearnedAndWrongAsLearning") &&
-    isCorrect
-  ) {
-    return true;
-  }
-
-  return currentStatus;
-}
-
-// 단어장 퀴즈 결과 행을 저장합니다.
-async function insertQuizResultRow(
-  quizSetup: QuizSetup,
-  quizAnswers: QuizAnswer[],
-  resultApplyMode: QuizResultApplyMode,
-  userId: string,
-) {
-  const correctAnswerCount = quizAnswers.filter((quizAnswer) => quizAnswer.isCorrect).length;
-  const wrongAnswers = quizAnswers.filter((quizAnswer) => !quizAnswer.isCorrect);
-  const masteredCount =
-    resultApplyMode === "saveCountsOnly" ? 0 : quizAnswers.filter((quizAnswer) => quizAnswer.isCorrect).length;
-  const accuracy = quizAnswers.length > 0 ? Math.round((correctAnswerCount / quizAnswers.length) * 100) : 0;
-  const wrongWordIds = wrongAnswers
-    .map((wrongAnswer) => wrongAnswer.vocabularyBookWordId)
-    .filter((vocabularyBookWordId): vocabularyBookWordId is string => Boolean(vocabularyBookWordId));
-
-  return supabase.from("quiz_results").insert({
-    user_id: userId,
-    vocabulary_book_id: quizSetup.vocabularyBookId as string,
-    total_questions: quizAnswers.length,
-    correct_count: correctAnswerCount,
-    wrong_count: wrongAnswers.length,
-    mastered_count: masteredCount,
-    accuracy,
-    wrong_word_ids: wrongWordIds,
-  });
-}
-
-// 단어장 퀴즈 답안을 단어별 통계와 학습 상태에 반영합니다.
-async function updateVocabularyBookWordResults(
-  quizAnswers: QuizAnswer[],
-  resultApplyMode: QuizResultApplyMode,
-) {
-  const vocabularyBookWordIds = quizAnswers
-    .map((quizAnswer) => quizAnswer.vocabularyBookWordId)
-    .filter((vocabularyBookWordId): vocabularyBookWordId is string => Boolean(vocabularyBookWordId));
-
-  if (vocabularyBookWordIds.length === 0) {
-    return { errorMessage: "결과를 반영할 단어장 단어가 없습니다." };
-  }
-
-  const { data: currentVocabularyBookWords, error: wordsError } = await supabase
-    .from("vocabulary_book_words")
-    .select("id,status,correct_count,wrong_count")
-    .in("id", vocabularyBookWordIds);
-
-  if (wordsError) {
-    return { errorMessage: `단어별 통계를 불러오지 못했습니다. ${wordsError.message}` };
-  }
-
-  const currentVocabularyBookWordMap = new Map(
-    (currentVocabularyBookWords ?? []).map((vocabularyBookWord) => [vocabularyBookWord.id, vocabularyBookWord]),
-  );
-
-  const updateResults = await Promise.all(
-    quizAnswers.map((quizAnswer) => {
-      if (!quizAnswer.vocabularyBookWordId) {
-        return Promise.resolve({ error: null });
-      }
-
-      const currentVocabularyBookWord = currentVocabularyBookWordMap.get(quizAnswer.vocabularyBookWordId);
-      const currentCorrectCount = currentVocabularyBookWord?.correct_count ?? 0;
-      const currentWrongCount = currentVocabularyBookWord?.wrong_count ?? 0;
-      const currentStatus = Boolean(currentVocabularyBookWord?.status);
-      const nextStatus = getNextLearningStatus(currentStatus, quizAnswer.isCorrect, resultApplyMode);
-
-      return supabase
-        .from("vocabulary_book_words")
-        .update({
-          correct_count: currentCorrectCount + (quizAnswer.isCorrect ? 1 : 0),
-          wrong_count: currentWrongCount + (quizAnswer.isCorrect ? 0 : 1),
-          status: nextStatus,
-          last_quizzed_at: new Date().toISOString(),
-        })
-        .eq("id", quizAnswer.vocabularyBookWordId);
-    }),
-  );
-
-  const failedUpdate = updateResults.find((updateResult) => updateResult.error);
-
-  if (failedUpdate?.error) {
-    return { errorMessage: `단어별 결과를 저장하지 못했습니다. ${failedUpdate.error.message}` };
-  }
-
-  return { errorMessage: "" };
-}
-
-// 단어장 퀴즈 답안을 Supabase의 결과와 단어별 통계에 반영합니다.
+// 단어장 퀴즈 답안을 Supabase RPC로 한 번에 저장하고 반영합니다.
 async function saveVocabularyBookQuizResult(
   quizSetup: QuizSetup,
   quizAnswers: QuizAnswer[],
@@ -526,33 +428,21 @@ async function saveVocabularyBookQuizResult(
     return { errorMessage: "단어장 퀴즈만 결과를 저장할 수 있습니다.", status: "failed" };
   }
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const quizAnswerRows = quizAnswers.map((quizAnswer) => ({
+    vocabularyBookWordId: quizAnswer.vocabularyBookWordId,
+    isCorrect: quizAnswer.isCorrect,
+  }));
 
-  if (userError || !user) {
+  const { error } = await supabase.rpc("save_vocabulary_book_quiz_result", {
+    requested_vocabulary_book_id: quizSetup.vocabularyBookId,
+    quiz_answers: quizAnswerRows,
+    result_apply_mode: resultApplyMode,
+  });
+
+  if (error) {
     return {
-      errorMessage: userError?.message ?? "사용자 정보를 확인하지 못했습니다.",
+      errorMessage: `퀴즈 결과를 저장하지 못했습니다. 단어별 통계는 변경하지 않았습니다. ${error.message}`,
       status: "failed",
-    };
-  }
-
-  const { error: quizResultError } = await insertQuizResultRow(quizSetup, quizAnswers, resultApplyMode, user.id);
-
-  if (quizResultError) {
-    return {
-      errorMessage: `퀴즈 결과를 저장하지 못했습니다. 단어별 통계는 변경하지 않았습니다. ${quizResultError.message}`,
-      status: "failed",
-    };
-  }
-
-  const updateResult = await updateVocabularyBookWordResults(quizAnswers, resultApplyMode);
-
-  if (updateResult.errorMessage) {
-    return {
-      errorMessage: `퀴즈 결과는 저장했지만 단어별 통계 반영에 실패했습니다. 중복 저장을 막기 위해 이 결과는 다시 저장할 수 없습니다. ${updateResult.errorMessage}`,
-      status: "partial",
     };
   }
 
@@ -688,13 +578,6 @@ export default function QuizClient({ initialVocabularyBookId = null }: QuizClien
 
     if (user) {
       await loadVocabularyBooksForUser(user.id, true);
-    }
-
-    if (saveResult.status === "partial") {
-      setResultFeedbackMessage(saveResult.errorMessage);
-      setHasSavedQuizResult(true);
-      setIsSavingQuizResult(false);
-      return { didSaveQuizResult: true, shouldOpenCompletionModal: false };
     }
 
     setResultFeedbackMessage("퀴즈 결과를 저장하고 단어 상태를 반영했습니다.");
