@@ -14,6 +14,8 @@
   background: #ffffff;
   box-shadow: 0 1rem 2.5rem rgb(15 23 42 / 8%);
   padding: 1.25rem;
+  overflow-y: hidden;
+  max-height: 42rem;
 }
 
 .panel {
@@ -24,6 +26,8 @@
 .wordList {
   gap: 0.75rem;
   margin: 1rem 0 0;
+  max-height: 36rem;
+  overflow-y: auto;
 }
 
 .notebookListCollapseFrame {
@@ -340,13 +344,26 @@
   overflow-wrap: anywhere;
 }
 
-.wordMeaningRow small {
+.wordMetaBadgeRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.wordMetaBadgeRow small {
   justify-self: end;
   border-radius: 999rem;
   background: var(--color-primary-soft);
   color: var(--color-primary-text);
   font-weight: 900;
   padding: 0.35rem 0.6rem;
+}
+
+.wordMetaBadgeRow .wordPartOfSpeechBadge {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .learningStatePanel {

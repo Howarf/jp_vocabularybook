@@ -10,10 +10,14 @@
 
 .logo {
   margin: 0;
-  color: #111827;
   font-size: clamp(1.375rem, 6vw, 1.75rem);
+}
+
+.logoLink {
+  color: #111827;
   font-weight: 900;
   letter-spacing: -0.04em;
+  text-decoration: none;
 }
 
 .pointText{

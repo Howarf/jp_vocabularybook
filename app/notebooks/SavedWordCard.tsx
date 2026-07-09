@@ -3,6 +3,7 @@
 import type { CSSProperties, PointerEvent } from "react";
 import type { VocabularyBookWordWithWord } from "@/src/types/vocabulary";
 import {
+  formatWordPartOfSpeech,
   normalizeJoinedWord,
   pickWordDisplayValue,
   wordExpressionFields,
@@ -32,6 +33,7 @@ function getSavedWordCardDisplayValues(vocabularyBookWord: VocabularyBookWordWit
   const wordText = word ? pickWordDisplayValue(word, wordExpressionFields) : "삭제되었거나 찾을 수 없는 단어";
   const readingText = word ? pickWordDisplayValue(word, wordReadingFields) : "-";
   const meaningText = word ? pickWordDisplayValue(word, wordKoreanMeaningFields) : "원본 words 데이터를 확인해 주세요.";
+  const partOfSpeechText = word ? formatWordPartOfSpeech(word.part_of_speech) : "";
   const tagText = word ? pickWordDisplayValue(word, wordTagFields) : "-";
   const isMemorized = Boolean(vocabularyBookWord.status);
   const correctCount = vocabularyBookWord.correct_count ?? 0;
@@ -43,6 +45,7 @@ function getSavedWordCardDisplayValues(vocabularyBookWord: VocabularyBookWordWit
     isMemorized,
     meaningText,
     nextLearningStatusText,
+    partOfSpeechText,
     readingText,
     tagText,
     wordText,
@@ -68,6 +71,7 @@ export default function SavedWordCard({
     isMemorized,
     meaningText,
     nextLearningStatusText,
+    partOfSpeechText,
     readingText,
     tagText,
     wordText,
@@ -104,7 +108,7 @@ export default function SavedWordCard({
         <div className={styles.wordTopRow}>
           <div className={styles.wordTitleRow}>
             <strong>{wordText}</strong>
-            {readingText !== "-" ? <span>{readingText}</span> : null}
+            {readingText !== "-" && readingText !== wordText && <span>{readingText}</span>}
           </div>
           <button
             className={styles.removeButton}
@@ -117,7 +121,10 @@ export default function SavedWordCard({
         </div>
         <div className={styles.wordMeaningRow}>
           <p>{meaningText}</p>
-          {tagText !== "-" ? <small>{tagText}</small> : null}
+          <div className={styles.wordMetaBadgeRow}>
+            {partOfSpeechText ? <small className={styles.wordPartOfSpeechBadge}>{partOfSpeechText}</small> : null}
+            {tagText !== "-" ? <small>{tagText}</small> : null}
+          </div>
         </div>
         <div className={[sharedStyles.learningStatePanel, styles.learningStatePanel].join(" ")}>
           <div className={styles.learningStateHeader}>

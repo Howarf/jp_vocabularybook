@@ -7,6 +7,7 @@ import { supabase } from "@/src/lib/supabaseClient";
 import { useVocabularyBookStore } from "@/src/stores/useVocabularyBookStore";
 import type { WordRow } from "@/src/types/vocabulary";
 import {
+  formatWordPartOfSpeech,
   normalizeJoinedWord,
   pickWordDisplayValue,
   wordExpressionFields,
@@ -29,6 +30,7 @@ type TodayWordCard = {
   expression: string;
   reading: string;
   meaning: string;
+  partOfSpeechLabel: string;
   tag: string;
 };
 
@@ -47,6 +49,7 @@ function createFallbackCard(word: WordRow): TodayWordCard {
     expression: pickWordDisplayValue(word, wordExpressionFields),
     reading: pickWordDisplayValue(word, wordReadingFields),
     meaning: pickWordDisplayValue(word, wordKoreanMeaningFields),
+    partOfSpeechLabel: formatWordPartOfSpeech(word.part_of_speech),
     tag: pickWordDisplayValue(word, wordTagFields),
   };
 }
@@ -64,6 +67,7 @@ function createSavedWordCard(savedWord: SavedWordRecommendation): TodayWordCard 
     expression: pickWordDisplayValue(word, wordExpressionFields),
     reading: pickWordDisplayValue(word, wordReadingFields),
     meaning: pickWordDisplayValue(word, wordKoreanMeaningFields),
+    partOfSpeechLabel: formatWordPartOfSpeech(word.part_of_speech),
     tag: pickWordDisplayValue(word, wordTagFields),
   };
 }
@@ -259,9 +263,21 @@ export default function TodayWordSection() {
                     {index + 1} / {todayWords.length}
                   </span>
                   <span className={styles.todayWordExpression}>{word.expression}</span>
-                  {word.reading !== "-" ? <span className={styles.todayWordReading}>{word.reading}</span> : null}
+                  {word.reading !== "-" ? (
+                    <span
+                      className={[
+                        styles.todayWordReading,
+                        word.expression === word.reading ? styles.hiddenTodayWordReading : "",
+                      ].filter(Boolean).join(" ")}
+                    >
+                      {word.reading}
+                    </span>
+                  ) : null}
                   <span className={styles.todayWordMeaning}>{word.meaning}</span>
-                  {word.tag !== "-" ? <small>{word.tag}</small> : null}
+                  <span className={styles.todayWordMetaBadgeRow}>
+                    {word.partOfSpeechLabel ? <small className={styles.todayWordPartOfSpeechBadge}>{word.partOfSpeechLabel}</small> : null}
+                    {word.tag !== "-" ? <small>{word.tag}</small> : null}
+                  </span>
                 </button>
               ))}
               {isResetPromptVisible ? (

@@ -124,7 +124,7 @@ export default function QuizQuestionScene({
           ) : null}
 
           <button
-            className={styles.primaryActionButton}
+            className={[styles.primaryActionButton, styles.quizFlowActionButton].join(" ")}
             disabled={!hasSelectedAnswer}
             type="button"
             onClick={handleNextQuestion}

@@ -10,6 +10,7 @@ type WordCardProps = {
   reading: string;
   koreanMeaning: string;
   englishMeaning: string;
+  partOfSpeechLabel: string;
   tag: string;
   onAddToNotebook: () => void;
 };
@@ -21,6 +22,7 @@ export default function WordCard({
   reading,
   koreanMeaning,
   englishMeaning,
+  partOfSpeechLabel,
   tag,
   onAddToNotebook,
 }: WordCardProps) {
@@ -119,11 +121,14 @@ export default function WordCard({
         <div className={styles.cardContent}>
           <div className={styles.wordRow}>
             <span className={styles.wordText}>{word}</span>
-            <span className={styles.readingText}>{reading}</span>
+            {reading && reading !== word && (<span className={styles.readingText}>{reading}</span>)}
           </div>
           <div className={styles.metaRow}>
             <span className={styles.meaningText}>{meaning}</span>
-            <span className={styles.tagText}>{tag}</span>
+            <div className={styles.metaBadgeRow}>
+              {partOfSpeechLabel ? <span className={styles.partOfSpeechText}>{partOfSpeechLabel}</span> : null}
+              <span className={styles.tagText}>{tag}</span>
+            </div>
           </div>
         </div>
       </div>

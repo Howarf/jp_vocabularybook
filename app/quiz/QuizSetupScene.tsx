@@ -89,13 +89,13 @@ export default function QuizSetupScene({
     <section className={[sharedStyles.surfacePanel, styles.scenePanel].join(" ")} aria-labelledby="quiz-setup-title">
       <div className={styles.sceneHeader}>
         <h2 id="quiz-setup-title" className={sharedStyles.sectionTitle}>
-          설정 및 시작
+          퀴즈 설정
         </h2>
       </div>
 
       <form className={styles.setupForm} onSubmit={handleSubmit}>
         <fieldset className={styles.fieldGroup}>
-          <legend className={styles.fieldLegend}>출제 대상</legend>
+          <legend className={styles.fieldLegend}>출제 위치</legend>
           <label className={styles.radioCard}>
             <input
               checked={sourceType === "vocabularyBook"}
@@ -125,7 +125,7 @@ export default function QuizSetupScene({
         </fieldset>
 
         {sourceType === "vocabularyBook" ? (
-          <label className={styles.formLabel} htmlFor="quiz-vocabulary-book">
+          <label className={[styles.formLabel, styles.vocabularyBookSelectLabel].join(" ")} htmlFor="quiz-vocabulary-book">
             단어장
             <select
               id="quiz-vocabulary-book"
@@ -199,7 +199,7 @@ export default function QuizSetupScene({
         </div>
 
         <button
-          className={styles.primaryActionButton}
+          className={[styles.primaryActionButton, styles.setupStartButton].join(" ")}
           disabled={isPreparingQuiz || isVocabularyBookSourceDisabled}
           type="submit"
         >

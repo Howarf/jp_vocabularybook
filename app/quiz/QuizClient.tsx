@@ -675,10 +675,10 @@ export default function QuizClient({ initialVocabularyBookId = null }: QuizClien
         <div className={sharedStyles.heroSection}>
           <p className={sharedStyles.eyebrowText}>Quiz practice</p>
           <h1 id="quiz-title" className={sharedStyles.pageTitle}>
-            퀴즈 학습
+            단어 퀴즈
           </h1>
           <p className={sharedStyles.pageDescription}>
-            단어장과 JLPT 범위를 선택해 문제를 풀고 결과를 바탕으로 복습할 단어를 정리합니다.
+            단어 문제를 풀고 결과를 바탕으로 복습할 단어를 정리합니다.
           </p>
         </div>
 

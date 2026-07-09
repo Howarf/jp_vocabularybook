@@ -4,6 +4,7 @@ import type { RefObject } from "react";
 import type { WordRow } from "@/src/types/vocabulary";
 import {
   pickWordDisplayValue,
+  formatWordPartOfSpeech,
   wordEnglishMeaningFields,
   wordExpressionFields,
   wordKoreanMeaningFields,
@@ -61,6 +62,7 @@ export default function WordList({
           const readingValue = pickWordDisplayValue(word, wordReadingFields);
           const koreanMeaningValue = pickWordDisplayValue(word, wordKoreanMeaningFields);
           const englishMeaningValue = pickWordDisplayValue(word, wordEnglishMeaningFields);
+          const partOfSpeechLabel = formatWordPartOfSpeech(word.part_of_speech);
           const tagValue = pickWordDisplayValue(word, wordTagFields);
           const wordId = word.id;
 
@@ -79,6 +81,7 @@ export default function WordList({
                       reading: readingValue,
                     })
               }
+              partOfSpeechLabel={partOfSpeechLabel}
               reading={readingValue}
               tag={tagValue}
               word={wordValue}

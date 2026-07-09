@@ -60,7 +60,7 @@
 
 .radioCard {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
   border: 1px solid #e5e7eb;
   border-radius: 1rem;
@@ -75,7 +75,7 @@
 
 .radioCard input {
   flex: 0 0 auto;
-  margin-top: 0.25rem;
+  margin: 0;
   accent-color: var(--color-primary);
 }
 
@@ -106,20 +106,40 @@
   font-weight: 800;
 }
 
+.vocabularyBookSelectLabel {
+  animation: setupFieldEnter 180ms ease both;
+}
+
 .formSelect {
+  appearance: none;
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 0.85rem;
-  background: #ffffff;
+  background:
+    linear-gradient(45deg, transparent 50%, #64748b 50%) calc(100% - 1.05rem) 50% / 0.45rem 0.45rem no-repeat,
+    linear-gradient(135deg, #64748b 50%, transparent 50%) calc(100% - 0.78rem) 50% / 0.45rem 0.45rem no-repeat,
+    #ffffff;
   color: #111827;
   font: inherit;
   font-weight: 800;
-  padding: 0.75rem 0.85rem;
+  padding: 0.75rem 2rem 0.75rem 0.85rem;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.formSelect:hover:not(:disabled) {
+  border-color: var(--color-primary-muted);
+  background-color: #f8fafc;
 }
 
 .formSelect:focus {
   border-color: var(--color-primary);
-  outline: 0.18rem solid rgb(16 185 129 / 20%);
+  box-shadow: 0 0 0 0.18rem rgb(16 185 129 / 20%);
+  outline: none;
+  transform: translateY(-0.04rem);
 }
 
 .formSelect:disabled {
@@ -176,6 +196,16 @@
   background: #cbd5e1;
   cursor: not-allowed;
   transform: none;
+}
+
+.setupStartButton {
+  justify-self: stretch;
+  width: 100%;
+}
+
+.quizFlowActionButton {
+  justify-self: stretch;
+  width: 100%;
 }
 
 .secondaryActionButton {
@@ -507,15 +537,39 @@
   gap: 0.75rem;
 }
 
+@keyframes setupFieldEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 48rem) {
   .scenePanel {
     padding: 1rem;
   }
 
   .formGrid,
-  .choiceGrid,
-  .resultSummaryGrid {
+  .choiceGrid {
     grid-template-columns: 1fr;
+  }
+
+  .resultSummaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .resultMetric {
+    padding: 0.8rem;
+  }
+
+  .resultMetric strong {
+    font-size: clamp(1rem, 5vw, 1.2rem);
   }
 
   .primaryActionButton {
@@ -527,8 +581,19 @@
     width: 100%;
   }
 
-  .resultButtonRow,
-  .quizModalButtonRow {
+  .resultButtonRow {
     display: grid;
+  }
+
+  .quizModalButtonRow {
+    display: flex;
+    flex-wrap: nowrap;
+  }
+
+  .quizModalButtonRow .primaryActionButton,
+  .quizModalButtonRow .primaryActionLink,
+  .quizModalButtonRow .secondaryActionButton {
+    flex: 1 1 0;
+    width: auto;
   }
 }

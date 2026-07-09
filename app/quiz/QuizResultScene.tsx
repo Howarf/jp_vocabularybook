@@ -141,7 +141,7 @@ export default function QuizResultScene({
       <div className={styles.resultButtonRow}>
         {canSaveQuizResult ? (
           <button
-            className={styles.primaryActionButton}
+            className={[styles.primaryActionButton, styles.quizFlowActionButton].join(" ")}
             disabled={isSavingQuizResult || hasSavedQuizResult}
             onClick={handleOpenApplyModeModal}
           >
@@ -149,7 +149,7 @@ export default function QuizResultScene({
           </button>
         ) : (
           <button
-            className={styles.primaryActionButton}
+            className={[styles.primaryActionButton, styles.quizFlowActionButton].join(" ")}
             disabled={!canCreateWrongAnswerBook || isCreatingWrongAnswerBook}
             onClick={onCreateWrongAnswerBook}
           >

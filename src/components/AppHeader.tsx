@@ -1,3 +1,4 @@
+import Link from "next/link";
 import HeaderMenuButton from "./HeaderMenuButton";
 import styles from "./AppHeader.module.css";
 
@@ -5,7 +6,11 @@ import styles from "./AppHeader.module.css";
 export default function AppHeader() {
   return (
     <header className={styles.header}>
-      <h1 className={styles.logo}><span className={styles.pointText}>My</span> 탄고</h1>
+      <h1 className={styles.logo}>
+        <Link className={styles.logoLink} href="/">
+          <span className={styles.pointText}>My</span> 탄고
+        </Link>
+      </h1>
       <HeaderMenuButton />
     </header>
   );

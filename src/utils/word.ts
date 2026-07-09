@@ -1,4 +1,4 @@
-import type { WordRow } from "@/src/types/database";
+import type { WordPartOfSpeech, WordRow } from "@/src/types/database";
 
 export type JlptFilterLabel = "전체" | "N5" | "N4" | "N3" | "N2";
 export type WordDisplayField = keyof Pick<WordRow, "expression" | "reading" | "meaning_ko" | "meaning_en" | "tag">;
@@ -16,6 +16,19 @@ export const wordKoreanMeaningFields = ["meaning_ko"] as const satisfies readonl
 export const wordEnglishMeaningFields = ["meaning_en"] as const satisfies readonly WordDisplayField[];
 export const wordTagFields = ["tag"] as const satisfies readonly WordDisplayField[];
 
+const wordPartOfSpeechLabels: Record<Exclude<WordPartOfSpeech, "other">, string> = {
+  noun: "명사",
+  verb: "동사",
+  i_adj: "i형용사",
+  na_adj: "na형용사",
+  adverb: "부사",
+  particle: "조사",
+  auxiliary: "조동사",
+  interjection: "감탄사",
+  conjunction: "접속사",
+  expression: "접사",
+};
+
 // 화면에 표시할 수 없는 단어 필드 값을 대체 문자열로 변환합니다.
 export function formatWordDisplayValue(value: WordRow[WordDisplayField] | undefined) {
   if (value === null || value === undefined) return "-";
@@ -26,6 +39,15 @@ export function formatWordDisplayValue(value: WordRow[WordDisplayField] | undefi
 export function pickWordDisplayValue(row: WordRow, fields: readonly WordDisplayField[]) {
   const matchedField = fields.find((field) => row[field] !== null && row[field] !== undefined);
   return formatWordDisplayValue(matchedField ? row[matchedField] : undefined);
+}
+
+// 단어 품사 값을 한국어 표시 문구로 변환합니다.
+export function formatWordPartOfSpeech(partOfSpeech: WordPartOfSpeech | null) {
+  if (!partOfSpeech || partOfSpeech === "other") {
+    return "";
+  }
+
+  return wordPartOfSpeechLabels[partOfSpeech];
 }
 
 // 선택한 JLPT 필터 라벨에 대응하는 데이터베이스 태그 값을 반환합니다.
