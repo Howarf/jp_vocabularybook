@@ -48,7 +48,6 @@ export default function HeaderMenuButton() {
   // Supabase 인증 세션을 종료하고 로그인 페이지로 이동합니다.
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    resetVocabularyBookState();
     await supabase.auth.signOut();
     resetVocabularyBookState();
     setIsLoggingOut(false);

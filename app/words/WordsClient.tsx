@@ -220,11 +220,6 @@ export default function WordsClient() {
     setNewVocabularyBookDescription(event.target.value);
   };
 
-  // 단어 id가 없는 항목을 단어장에 추가하지 못한다는 메시지를 표시합니다.
-  const handleInvalidWordId = () => {
-    setFeedbackMessage("이 단어에는 저장에 필요한 id가 없습니다.");
-  };
-
   // 단어 목록 페이지의 최상단으로 부드럽게 이동합니다.
   const handleScrollToTop = () => {
     window.scrollTo({ behavior: "smooth", top: 0 });
@@ -400,7 +395,6 @@ export default function WordsClient() {
         hasMore={hasMore}
         isLoading={isLoading}
         onAddToNotebook={openNotebookModal}
-        onInvalidWordId={handleInvalidWordId}
         sentinelRef={sentinelRef}
         words={words}
       />

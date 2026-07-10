@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import sharedStyles from "../shared.module.css";
-import type { QuizAnswer, QuizQuestion } from "./QuizClient";
+import type { QuizAnswer, QuizQuestion } from "./quizTypes";
 import styles from "./quiz.module.css";
 
 type QuizQuestionSceneProps = {

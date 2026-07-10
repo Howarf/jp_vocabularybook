@@ -27,7 +27,6 @@ type WordListProps = {
   errorMessage: string;
   sentinelRef: RefObject<HTMLDivElement | null>;
   onAddToNotebook: (word: SelectedWord) => void;
-  onInvalidWordId: () => void;
 };
 
 // 단어 목록과 목록 상태 메시지를 렌더링합니다.
@@ -38,7 +37,6 @@ export default function WordList({
   errorMessage,
   sentinelRef,
   onAddToNotebook,
-  onInvalidWordId,
 }: WordListProps) {
   return (
     <>
@@ -64,22 +62,19 @@ export default function WordList({
           const englishMeaningValue = pickWordDisplayValue(word, wordEnglishMeaningFields);
           const partOfSpeechLabel = formatWordPartOfSpeech(word.part_of_speech);
           const tagValue = pickWordDisplayValue(word, wordTagFields);
-          const wordId = word.id;
 
           return (
             <WordCard
               englishMeaning={englishMeaningValue}
               index={index + 1}
-              key={String(word.id ?? `${wordValue}-${index}`)}
+              key={String(word.id)}
               koreanMeaning={koreanMeaningValue}
               onAddToNotebook={() =>
-                typeof wordId !== "number"
-                  ? onInvalidWordId()
-                  : onAddToNotebook({
-                      id: wordId,
-                      word: wordValue,
-                      reading: readingValue,
-                    })
+                onAddToNotebook({
+                  id: word.id,
+                  word: wordValue,
+                  reading: readingValue,
+                })
               }
               partOfSpeechLabel={partOfSpeechLabel}
               reading={readingValue}

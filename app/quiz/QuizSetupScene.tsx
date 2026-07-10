@@ -3,7 +3,7 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import type { VocabularyBookWithCount } from "@/src/types/vocabulary";
 import sharedStyles from "../shared.module.css";
-import type { QuizLevel, QuizQuestionMode, QuizSetup, QuizSourceType } from "./QuizClient";
+import type { QuizLevel, QuizQuestionMode, QuizSetup, QuizSourceType } from "./quizTypes";
 import styles from "./quiz.module.css";
 
 type QuizSetupSceneProps = {

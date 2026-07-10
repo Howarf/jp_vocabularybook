@@ -77,7 +77,7 @@ export default function LearningVocabularyBookSection() {
                     />
                   </div>
                 </Link>
-                <Link className={styles.mockQuizButton} href={`/quiz?bookId=${learningVocabularyBook.id}`}>
+                <Link className={styles.quizButton} href={`/quiz?bookId=${learningVocabularyBook.id}`}>
                   퀴즈
                 </Link>
               </div>

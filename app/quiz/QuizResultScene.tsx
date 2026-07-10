@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type ChangeEvent } from "react";
 import sharedStyles from "../shared.module.css";
-import type { ApplyQuizResultResult, QuizAnswer, QuizResultApplyMode, QuizSetup } from "./QuizClient";
+import type { ApplyQuizResultResult, QuizAnswer, QuizResultApplyMode, QuizSetup } from "./quizTypes";
 import styles from "./quiz.module.css";
 
 type QuizResultSceneProps = {

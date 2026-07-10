@@ -418,7 +418,7 @@
   font-weight: 900;
 }
 
-.mockQuizButton {
+.quizButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -437,7 +437,7 @@
     background 160ms ease,
     transform 160ms ease;
 }
-.mockQuizButton:hover{
+.quizButton:hover{
   color: #fff;
   background-color: var(--color-primary);
   transform: translateY(-0.06rem);
@@ -638,7 +638,7 @@
     grid-template-columns: 1fr;
   }
 
-  .mockQuizButton {
+  .quizButton {
     min-height: 2.5rem;
   }
 }
